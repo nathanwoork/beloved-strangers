@@ -260,6 +260,32 @@ footer{font-family:"Dancing Script", var(--hand); font-weight:500; font-size:24p
 .tab-locked{display:inline-flex; align-items:center; gap:5px; opacity:.55; border-style:dashed; background:transparent; cursor:not-allowed; filter:grayscale(1)}
 .tab-locked small{font-size:11px; opacity:.85}
 
+/* Greeting for Heather */
+.greet{margin:10px 0 0; font-family:var(--hand); font-size:22px; line-height:1.2; color:var(--accent-ink)}
+#cd .countdown{margin-top:8px}
+
+/* Until next time */
+.nextform{margin-top:12px; display:flex; flex-direction:column; gap:6px; max-width:calc(100% - 90px)}
+.nextform label{font-size:13px; color:var(--muted)}
+.nextrow{display:flex; gap:8px; flex-wrap:wrap}
+.nextrow input{flex:1 1 180px; min-width:0; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:7px 12px; font-size:14px}
+
+/* Tap the drawing or the names for hearts */
+button.names{border:none; background:none; padding:0; cursor:pointer; text-align:left}
+button.motif-head{border:none; background:none; padding:0; cursor:pointer; pointer-events:auto; -webkit-tap-highlight-color:transparent}
+button.motif-head:active svg{transform:scale(.94)}
+button.motif-head svg{transition:transform .15s}
+.float-heart{position:fixed; z-index:50; width:22px; height:22px; margin:-11px 0 0 -11px; pointer-events:none; animation:heartUp 1.6s ease-out forwards}
+.float-heart svg{width:100%; height:100%; display:block}
+.float-heart svg path{fill:currentColor; stroke:none}
+@keyframes heartUp{0%{opacity:0; transform:translate(0,0) scale(calc(var(--s) * .4))} 15%{opacity:1} 100%{opacity:0; transform:translate(var(--dx),-130px) scale(var(--s))}}
+@media (prefers-reduced-motion: reduce){ .float-heart{animation-duration:1s} }
+.nextwrap{margin-top:10px; max-width:calc(100% - 90px)}
+.nextwrap summary{list-style:none; cursor:pointer; font-size:13px; color:var(--muted)}
+.nextwrap summary::-webkit-details-marker{display:none}
+.nextwrap summary span{color:var(--accent-ink); text-decoration:underline; margin-left:4px}
+.nextwrap .nextform{max-width:none; margin-top:8px}
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -398,6 +424,7 @@ function fromDoc(d) {
   return {
     theme: d.theme || "peach",
     notes: d.notes || "",
+    nextVisit: d.nextVisit || "",
     days: ["fri", "sat", "sun"].map(id => {
       const dd = (d.days || {})[id] || {};
       return { id, short: DAYMETA[id].short, long: DAYMETA[id].long, title: dd.title || "", note: dd.note || "", items: sortMap(dd.items) };
@@ -485,17 +512,61 @@ function currentView() {
 const writerKey = () => { const m = location.hash.match(/^#write-([A-Za-z0-9]{12,})$/); return m ? m[1] : null; };
 
 /* ---------- countdown ---------- */
+const MYT = 8 * 3600e3;
+const nowMYT = () => new Date(Date.now() + MYT);              // read with getUTC* for Malaysia time
+const nextAt = () => (state && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(state.nextVisit || "")) ? new Date(state.nextVisit + ":00+08:00").getTime() : null;
+function prettyNext(ms) {
+  const d = new Date(ms + MYT), M = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], W = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  let h = d.getUTCHours(), m = d.getUTCMinutes(), ap = h >= 12 ? "pm" : "am"; h = h % 12 || 12;
+  return `${W[d.getUTCDay()]} ${d.getUTCDate()} ${M[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`;
+}
+function greetingHTML() {
+  // A different line for Heather each day, with a time-of-day hello (Malaysia time)
+  const t = nowMYT(), hr = t.getUTCHours(), now = Date.now();
+  const hello = hr >= 5 && hr < 12 ? "Good morning" : hr >= 12 && hr < 17 ? "Good afternoon" : hr >= 17 && hr < 22 ? "Good evening" : "Still up";
+  const day = t.toISOString().slice(0, 10);
+  let line;
+  if (now >= LETTER_AT) line = "missing you already ♡";
+  else if (day === "2026-12-04") line = now < START ? "today's finally the day ♡" : "you're here, finally ♡";
+  else if (day === "2026-12-05") line = "tea, scones and a long chat tonight ♡";
+  else if (day === "2026-12-06") line = "our last day, let's make it count ♡";
+  else {
+    const sleeps = Math.round((Date.UTC(2026, 11, 4) - Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate())) / 864e5);
+    line = sleeps === 1 ? "one more sleep ♡" : `${sleeps} more sleeps ♡`;
+  }
+  const cap = line.charAt(0).toUpperCase() + line.slice(1);
+  return `<p class="greet">${hello}, Heather${hello === "Still up" ? "?" : "."} ${cap}</p>`;
+}
+function boxes(target, label) {
+  const s = Math.max(0, Math.floor((target - Date.now()) / 1000)), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  return `<div class="countdown" aria-label="${d} days, ${h} hours and ${m} minutes ${esc(label)}">` +
+    `<div class="cd"><b>${d}</b><small>${d === 1 ? "day" : "days"}</small></div><div class="cd"><b>${h}</b><small>${h === 1 ? "hour" : "hours"}</small></div><div class="cd"><b>${m}</b><small>${m === 1 ? "min" : "mins"}</small></div>` +
+    `<span class="cd-label">${label}</span></div>`;
+}
 function countdownHTML() {
   const now = Date.now();
-  if (now >= END) return '<div class="countdown"><span class="cd-msg">Hope it was a wonderful weekend ♡</span></div>';
-  if (now >= START) {
+  let body;
+  if (now >= LETTER_AT) {
+    const nx = nextAt();
+    if (nx && now < nx) body = boxes(nx, "until we see each other again");
+    else if (nx) body = '<div class="countdown"><span class="cd-msg">Together again ♡</span></div>';
+    else body = '<div class="countdown"><span class="cd-msg">Until next time ♡</span></div>';
+  } else if (now >= END) body = '<div class="countdown"><span class="cd-msg">Hope it was a wonderful weekend ♡</span></div>';
+  else if (now >= START) {
     const n = Math.min(3, Math.floor((now - new Date("2026-12-04T00:00:00+08:00").getTime()) / 864e5) + 1);
-    return `<div class="countdown"><span class="cd-msg">Day ${n} of 3. Enjoy it ♡</span></div>`;
-  }
-  const s = Math.floor((START - now) / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
-  return `<div class="countdown" aria-label="${d} days, ${h} hours and ${m} minutes until pickup">` +
-    `<div class="cd"><b>${d}</b><small>days</small></div><div class="cd"><b>${h}</b><small>hours</small></div><div class="cd"><b>${m}</b><small>mins</small></div>` +
-    `<span class="cd-label">until 1:20 pm pickup</span></div>`;
+    body = `<div class="countdown"><span class="cd-msg">Day ${n} of 3. Enjoy it ♡</span></div>`;
+  } else body = boxes(START, "until 1:20 pm pickup");
+  return greetingHTML() + body;
+}
+function nextVisitHTML() {
+  // Shown only after the letter opens: pick the date of the next visit (shared by both phones)
+  if (Date.now() < LETTER_AT) return "";
+  const nx = nextAt();
+  const form = `<form class="nextform" data-form="next">` +
+    `<label for="next-at">${nx ? "Change the date" : "When do we see each other next?"}</label>` +
+    `<div class="nextrow"><input id="next-at" name="when" type="datetime-local" value="${esc(state.nextVisit || "")}" aria-label="Date and time of our next visit">` +
+    `<button class="cta" type="submit">${nx ? "Update" : "Set"}</button></div></form>`;
+  return nx ? `<details class="nextwrap"><summary>Next time: ${esc(prettyNext(nx))} <span>change</span></summary>${form}</details>` : form;
 }
 
 /* ---------- views ---------- */
@@ -632,6 +703,24 @@ function songsView() {
     '</section>';
 }
 const TAB_LOCK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+function heartBurst(from) {
+  const r = from.getBoundingClientRect(), cs = getComputedStyle(document.documentElement);
+  const cols = [cs.getPropertyValue("--accent").trim(), cs.getPropertyValue("--accent-ink").trim(), "#F29BB2"];
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches, n = reduce ? 3 : 9;
+  for (let i = 0; i < n; i++) {
+    const h = document.createElement("span");
+    h.className = "float-heart";
+    h.innerHTML = HEART_SVG;
+    h.style.left = (r.left + r.width / 2 + (Math.random() - .5) * r.width * .8) + "px";
+    h.style.top = (r.top + r.height * .45) + "px";
+    h.style.color = cols[i % cols.length];
+    h.style.setProperty("--dx", ((Math.random() - .5) * 90).toFixed(0) + "px");
+    h.style.setProperty("--s", (0.7 + Math.random() * .7).toFixed(2));
+    h.style.animationDelay = (i * 60) + "ms";
+    document.body.appendChild(h);
+    setTimeout(() => h.remove(), 1900 + i * 60);
+  }
+}
 function stickerHTML() { const T = theme(); return T.sticker ? `<span class="sticker">${T.sticker}</span>` : ""; }
 function letterView() {
   let body;
@@ -700,11 +789,11 @@ function render() {
     (letterOpen() ? `<a class="tab" href="#letter"${v === "letter" ? ' aria-current="page"' : ""}>A letter ♡</a>` : "");
   const body = v === "letter" ? letterView() : v === "songs" ? songsView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
   root.innerHTML = '<div class="wrap">' +
-    '<header class="top"><div class="toprow"><span class="names">Nathan &amp; Heather</span>' +
+    '<header class="top"><div class="toprow"><button type="button" class="names" data-act="hearts">Nathan &amp; Heather</button>' +
     '<div class="swatches" role="group" aria-label="Colour theme">' +
     THEMES.map(t => `<button type="button" class="sw" style="background:linear-gradient(135deg,${t.sw[0]} 50%,${t.sw[1]} 50%)" data-act="theme" data-theme="${t.id}" aria-pressed="${T.id === t.id}" aria-label="${esc(t.name)} theme" title="${esc(t.name)}"></button>`).join("") + '</div></div>' +
     '<h1>Beloved Strangers</h1><div class="dates">Fri 4 – Sun 6 December 2026 · Kuala Lumpur</div>' +
-    `<div id="cd">${countdownHTML()}</div>` + (T.head ? `<div class="motif-head">${T.head}</div>` : "") + '</header>' +
+    `<div id="cd">${countdownHTML()}</div>` + nextVisitHTML() + (T.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="Send some hearts">${T.head}</button>` : "") + '</header>' +
     `<nav class="tabs" aria-label="Sections"><div class="tabrow">${tabs}</div>${statusHTML()}</nav>` +
     body + letterCardHTML(v) + (T.divider ? `<div class="motif-row">${T.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + '<footer lang="vi">Một trăm năm liệu có đủ để yêu em?</footer></div>';
   root.querySelectorAll("textarea").forEach(grow);
@@ -728,6 +817,7 @@ root.addEventListener("change", e => {
 root.addEventListener("click", e => {
   const t = e.target.closest("[data-act]"); if (!t || t.tagName === "INPUT" || !state) return;
   const a = t.dataset.act, id = t.dataset.id, d = t.dataset.day ? day(t.dataset.day) : null;
+  if (a === "hearts") { heartBurst(t); return; }
   if (a === "filter") { filter = t.dataset.cat; render(); return; }
   if (a === "menu") { openMenu = openMenu === id ? null : id; render(); return; }
   if (a === "theme") { state.theme = t.dataset.theme; render(); writeNow(["theme"], state.theme); return; }
@@ -769,6 +859,7 @@ root.addEventListener("submit", e => {
     state.places.push(Object.assign({ id }, p)); filter = "all"; f.reset();
     writeNow(["places", id], p);
   }
+  if (kind === "next") { const v = f.elements.when.value; if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v)) return; state.nextVisit = v; writeNow(["nextVisit"], v); render(); return; }
   if (kind === "song") { const u = f.elements.url.value; f.reset(); addSong(u); return; }
   if (kind === "check") {
     const tx = f.elements.text.value.trim(); if (!tx) return;
