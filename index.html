@@ -37,15 +37,13 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px}
 
 /* Header */
-header.top{padding:28px 0 14px; display:flex; flex-direction:column; gap:6px}
-.toprow{display:flex; justify-content:space-between; align-items:center; gap:12px}
+header.top{position:relative; padding:28px 0 14px; display:flex; flex-direction:column; gap:6px}
+.toprow{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap}
 .names{font-family:var(--hand); font-size:26px; color:var(--accent-ink); line-height:1}
-.swatches{display:flex; gap:8px; align-items:center}
+.swatches{display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
 .swatches span{font-size:12px; color:var(--muted)}
-.sw{width:26px; height:26px; border-radius:50%; border:2px solid var(--card); box-shadow:0 0 0 1px var(--line); padding:0}
+.sw{width:24px; height:24px; flex:0 0 auto; border-radius:50%; border:2px solid var(--card); box-shadow:0 0 0 1px var(--line); padding:0}
 .sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
-.sw.peach{background:linear-gradient(135deg,#F7DCCB 50%,#D9774F 50%)}
-.sw.rose{background:linear-gradient(135deg,#EED2DE 50%,#7E3A5C 50%)}
 h1{font-family:var(--display); font-weight:600; font-size:38px; line-height:1.05; margin:4px 0 0; letter-spacing:-.01em; text-wrap:balance}
 .dates{color:var(--muted); font-size:15px}
 .countdown{display:flex; gap:8px; margin-top:12px; align-items:stretch; flex-wrap:wrap}
@@ -158,6 +156,68 @@ footer{margin-top:40px; text-align:center; font-family:var(--hand); font-size:22
 .ro .add,.ro .more,.ro .tools,.ro .x,.ro .newplace,.ro .addrow,.ro .prow{display:none}
 @media (prefers-reduced-motion: no-preference){ .tab,.chip,.sw{transition:background-color .15s, border-color .15s, box-shadow .15s} }
 
+/* ---------- nail-inspired themes ---------- */
+/* Tomato & black cat: glossy tomato red, calyx green, butter-yellow glitter base, black cat */
+:root[data-palette="tomato"]{
+  --paper:#FBF4E2; --card:#FFFBEE; --ink:#2A1714; --muted:#7D6A55; --accent:#D2171E; --accent-ink:#A30F16; --accent-soft:#FADAD2; --line:#EADFC1; --leaf:#4F8A2B;
+}
+/* White roses & lace: milky pink-white, sugar-white roses, tiny pink rosebuds, pearls */
+:root[data-palette="lace"]{
+  --paper:#FBF5F3; --card:#FFFDFC; --ink:#4A3337; --muted:#9A8287; --accent:#D88E9B; --accent-ink:#A9586A; --accent-soft:#F7E3E5; --line:#EEDCDB;
+}
+/* Red ribbon & hearts: sheer nude glitter, wine-red French tips and bows, pearls */
+:root[data-palette="ribbon"]{
+  --paper:#F6EBE4; --card:#FFF8F4; --ink:#3A1B1E; --muted:#8C6C68; --accent:#8E1622; --accent-ink:#76111C; --accent-soft:#F1D6D0; --line:#E8D3CB;
+}
+/* Crimson lace & crystals: milky white ombré, white lace, crimson cross, silver rhinestones */
+:root[data-palette="crimson"]{
+  --paper:#F6F4F3; --card:#FFFFFF; --ink:#2B2023; --muted:#857A7D; --accent:#B0121F; --accent-ink:#8C0E19; --accent-soft:#F3DCDD; --line:#E3DDDC;
+}
+
+/* Drawings */
+.motif-head{position:absolute; right:0; bottom:6px; width:84px; height:84px; pointer-events:none}
+.motif-head svg,.sticker svg,.mdot svg,.motif-row svg{display:block; width:100%; height:100%}
+.mdot{position:absolute; left:-10px; top:5px; width:19px; height:19px; z-index:1}
+.item .body:has(.mdot)::before{display:none}
+.sticker{position:absolute; right:-8px; top:-18px; width:46px; height:46px; transform:rotate(9deg); pointer-events:none; filter:drop-shadow(0 2px 2px rgba(60,20,20,.18))}
+.paper{position:relative}
+.paper h3{padding-right:36px}
+.motif-row{display:flex; justify-content:center; align-items:center; gap:14px; margin-top:34px}
+.motif-row span{width:20px; height:20px}
+.motif-row span:nth-child(2){width:34px; height:30px}
+.motif-row + footer{margin-top:10px}
+
+/* Tomato: glossy red countdown "nails" */
+:root[data-palette="tomato"] .cd{background:linear-gradient(155deg,#E8393D 0%,#D2171E 45%,#B30F16 100%); border-color:#A30F16; color:#FFF6E2; box-shadow:inset 0 2px 0 rgba(255,255,255,.35)}
+:root[data-palette="tomato"] .cd small{color:#FCE3C2}
+:root[data-palette="tomato"] .tab[aria-current="page"]{background:var(--accent); border-color:var(--accent); color:#FFF6E2}
+:root[data-palette="tomato"] .eyebrow{color:var(--leaf)}
+:root[data-palette="tomato"] .paper{background-image:radial-gradient(rgba(234,196,80,.28) .9px, transparent 1.3px); background-size:15px 15px}
+
+/* Lace (roses) and crimson: scalloped lace edge on the note papers and countdown */
+:root[data-palette="lace"] .paper::before,:root[data-palette="crimson"] .paper::before{
+  content:""; position:absolute; left:10px; right:10px; top:-8px; height:9px;
+  background:radial-gradient(circle at 7px 1.6px, var(--line) 1.3px, transparent 1.6px) 0 3px/14px 9px repeat-x,
+             radial-gradient(circle at 7px 9px, var(--card) 6px, transparent 6.5px) 0 0/14px 9px repeat-x;
+  filter:drop-shadow(0 -1px 0 var(--line))}
+:root[data-palette="lace"] .cd{background:linear-gradient(180deg,#FFFFFF,#FBEFF0)}
+:root[data-palette="lace"] .tab[aria-current="page"]{background:#FFFFFF; border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft)}
+
+/* Ribbon: French-tip bottoms and a little glitter */
+:root[data-palette="ribbon"] .cd{background-color:#FBF1EC; background-image:radial-gradient(rgba(201,150,110,.45) .8px, transparent 1.2px),radial-gradient(rgba(255,255,255,.95) .8px, transparent 1.2px); background-size:11px 13px,17px 9px; background-position:0 0,5px 4px; border-bottom:5px solid var(--accent)}
+:root[data-palette="ribbon"] .tab[aria-current="page"]{background:#FBF1EC; border-color:var(--line); box-shadow:inset 0 -4px 0 var(--accent)}
+:root[data-palette="ribbon"] .paper{background-image:radial-gradient(rgba(201,150,110,.30) .8px, transparent 1.2px),radial-gradient(rgba(255,255,255,.9) .9px, transparent 1.3px); background-size:13px 17px,19px 11px; background-position:0 0,6px 5px}
+
+/* Crimson: milky ombré countdown with a crimson tip */
+:root[data-palette="crimson"] .cd{background:linear-gradient(180deg,#FFFFFF 0%,#F4EDEC 100%); border-top:3px solid var(--accent)}
+:root[data-palette="crimson"] .tab[aria-current="page"]{background:#FFFFFF; border-color:var(--accent); color:var(--accent-ink)}
+
+@media (max-width:380px){ .motif-head{width:70px; height:70px} }
+
+/* soft shadows so white roses, bows, pearls and crystals read on pale backgrounds */
+:root[data-palette="lace"] .motif-head svg,:root[data-palette="lace"] .sticker svg,:root[data-palette="lace"] .mdot svg,:root[data-palette="lace"] .motif-row svg{filter:drop-shadow(0 1px 1.5px rgba(150,90,100,.38))}
+:root[data-palette="crimson"] .mdot svg,:root[data-palette="crimson"] .motif-row svg{filter:drop-shadow(0 1px 1px rgba(80,80,90,.3))}
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -178,6 +238,88 @@ const DAYSTART = { fri: "2026-12-04", sat: "2026-12-05", sun: "2026-12-06" };
 const DAYMETA = { fri: { short: "Fri 4", long: "Friday, 4 December" }, sat: { short: "Sat 5", long: "Saturday, 5 December" }, sun: { short: "Sun 6", long: "Sunday, 6 December" } };
 const CATS = [{ id: "dinner", name: "Dinner ideas" }, { id: "rain", name: "Saturday backups" }, { id: "sunday", name: "Sunday before the flight" }, { id: "sweet", name: "Late night and sweet" }];
 const letterOpen = () => Date.now() >= LETTER_AT;
+
+/* ---------- themes (palettes live in CSS; drawings live here) ---------- */
+const SVG = (vb, body) => `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${body}</svg>`;
+const STAR = (cx, cy, r, fill) => {
+  let d = "";
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; d += (i ? "L" : "M") + (cx + rr * Math.cos(a)).toFixed(1) + " " + (cy + rr * Math.sin(a)).toFixed(1); }
+  return `<path d="${d}Z" fill="${fill}"/>`;
+};
+const CALYX = (cx, cy, r, fill) => {
+  // five pointed leaves, like the green tomato tops
+  let d = "";
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.28 : r; d += (i ? "L" : "M") + (cx + rr * Math.cos(a)).toFixed(1) + " " + (cy + rr * Math.sin(a)).toFixed(1); }
+  return `<path d="${d}Z" fill="${fill}" stroke="#3B6C1F" stroke-width=".6" stroke-linejoin="round"/><circle cx="${cx}" cy="${cy}" r="${(r * 0.22).toFixed(1)}" fill="#6FA845"/>`;
+};
+const TOMATO = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#D2171E"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#tg)"/>` +
+  `<ellipse cx="${cx - r * .42}" cy="${cy - r * .38}" rx="${r * .26}" ry="${r * .15}" fill="#fff" opacity=".7" transform="rotate(-35 ${cx - r * .42} ${cy - r * .38})"/>` + CALYX(cx, cy - r * .62, r * .62, "#4F8A2B");
+const TDEF = '<defs><radialGradient id="tg" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#FF5A4E" stop-opacity=".55"/><stop offset=".6" stop-color="#D2171E" stop-opacity="0"/><stop offset="1" stop-color="#8E0B10" stop-opacity=".45"/></radialGradient></defs>';
+const BOW = (fill, edge, shine) => `<path d="M32 21C24 6 7 5 7 18c0 10 15 11 25 4z" fill="${fill}" stroke="${edge}" stroke-width="1.2"/>` +
+  `<path d="M32 21C40 6 57 5 57 18c0 10-15 11-25 4z" fill="${fill}" stroke="${edge}" stroke-width="1.2"/>` +
+  `<path d="M29 24l-9 21 6-2.5 3 5 5-22z" fill="${fill}" stroke="${edge}" stroke-width="1.2" stroke-linejoin="round"/>` +
+  `<path d="M35 24l9 21-6-2.5-3 5-5-22z" fill="${fill}" stroke="${edge}" stroke-width="1.2" stroke-linejoin="round"/>` +
+  `<rect x="27" y="15" width="10" height="11" rx="4" fill="${fill}" stroke="${edge}" stroke-width="1.2"/>` +
+  `<path d="M13 14c3-4 9-4 13 1M51 14c-3-4-9-4-13 1" stroke="${shine}" stroke-width="2" fill="none" stroke-linecap="round" opacity=".8"/>`;
+const PEARL = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#pg)" stroke="#C9B2B0" stroke-width=".9"/>`;
+const PDEF = '<defs><radialGradient id="pg" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#fff"/><stop offset=".7" stop-color="#F3ECEA"/><stop offset="1" stop-color="#D9CBC8"/></radialGradient></defs>';
+const HEART = (cx, cy, s, fill) => `<path transform="translate(${cx - 12 * s} ${cy - 12 * s}) scale(${s})" d="M12 21s-7.5-4.8-9.6-9.4C.7 7.8 3.3 4 7 4c2.1 0 3.6 1.2 5 3.1C13.4 5.2 14.9 4 17 4c3.7 0 6.3 3.8 4.6 7.6C19.5 16.2 12 21 12 21z" fill="${fill}"/>`;
+const ROSE = (cx, cy, r) => {
+  let p = "";
+  for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; p += `<circle cx="${(cx + r * .52 * Math.cos(a)).toFixed(1)}" cy="${(cy + r * .52 * Math.sin(a)).toFixed(1)}" r="${(r * .5).toFixed(1)}" fill="#fff" stroke="#E3D0D0" stroke-width=".9"/>`; }
+  return p + `<circle cx="${cx}" cy="${cy}" r="${r * .55}" fill="#FFFDFC" stroke="#E3D0D0" stroke-width=".9"/>` +
+    `<path d="M${cx - r * .3} ${cy}a${r * .3} ${r * .3} 0 1 1 ${r * .3} ${r * .3}a${r * .18} ${r * .18} 0 1 1-${r * .18}-${r * .18}" fill="none" stroke="#D9C1C3" stroke-width="1.1" stroke-linecap="round"/>`;
+};
+const BUD = (cx, cy, r) => `<path d="M${cx} ${cy + r * 1.6}q${r * .9}-${r * .5} ${r * 1.4}-${r * .2}" stroke="#9DB58A" stroke-width="1" fill="none"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="#E7A9B3"/><path d="M${cx - r * .5} ${cy}a${r * .5} ${r * .5} 0 0 1 ${r} 0" stroke="#C97F8C" stroke-width=".8" fill="none"/>`;
+const GEM = (cx, cy, w, h, rot) => `<g transform="rotate(${rot} ${cx} ${cy})"><path d="M${cx} ${cy - h}Q${cx + w} ${cy} ${cx} ${cy + h}Q${cx - w} ${cy} ${cx} ${cy - h}z" fill="url(#gg)" stroke="#9AA0A8" stroke-width=".6"/><path d="M${cx} ${cy - h * .7}L${cx} ${cy + h * .7}" stroke="#fff" stroke-width=".7" opacity=".8"/></g>`;
+const GDEF = '<defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#D9DEE5"/><stop offset=".55" stop-color="#F7F9FB"/><stop offset="1" stop-color="#AEB5BF"/></linearGradient></defs>';
+const STONE = (cx, cy, r) => `<path d="M${cx} ${cy - r}L${cx + r * .87} ${cy - r * .5}L${cx + r * .87} ${cy + r * .5}L${cx} ${cy + r}L${cx - r * .87} ${cy + r * .5}L${cx - r * .87} ${cy - r * .5}z" fill="url(#gg)" stroke="#8E959F" stroke-width=".8"/>` +
+  `<path d="M${cx} ${cy - r * .45}L${cx + r * .4} ${cy}L${cx} ${cy + r * .45}L${cx - r * .4} ${cy}z" fill="#FFFFFF" stroke="#B9C0C8" stroke-width=".5"/>` +
+  `<path d="M${cx} ${cy - r}L${cx} ${cy - r * .45}M${cx + r * .87} ${cy - r * .5}L${cx + r * .4} ${cy}M${cx - r * .87} ${cy + r * .5}L${cx - r * .4} ${cy}" stroke="#A3AAB3" stroke-width=".5"/>`;
+const CROSS = s => SVG("0 0 80 80", GDEF +
+  `<path d="M40 2Q45 35 78 40Q45 45 40 78Q35 45 2 40Q35 35 40 2z" fill="#B0121F"/>` +
+  [[40, 13], [40, 25], [40, 55], [40, 67]].map(([x, y]) => GEM(x, y, 5.5, 7, 0)).join("") +
+  [[13, 40], [25, 40], [55, 40], [67, 40]].map(([x, y]) => GEM(x, y, 5.5, 7, 90)).join("") +
+  `<path d="M40 33l6 7-6 7-6-7z" fill="#E0303B" stroke="#7E0C15" stroke-width=".8"/><path d="M40 34.5l3.5 5.5" stroke="#fff" stroke-width=".9" opacity=".7"/>`);
+
+const THEMES = [
+  { id: "peach", name: "Peach & cream", sw: ["#F7DCCB", "#D9774F"] },
+  { id: "rose", name: "Dusty rose & plum", sw: ["#EED2DE", "#7E3A5C"] },
+  {
+    id: "tomato", name: "Tomato & black cat", sw: ["#D2171E", "#4F8A2B"],
+    dot: SVG("0 0 24 24", TDEF + TOMATO(12, 13.5, 9)),
+    head: SVG("0 0 96 96", TDEF + STAR(16, 18, 8, "#F2C230") + STAR(84, 60, 5, "#F2C230") +
+      `<path d="M26 44L29 17L43 32Q50 30 57 32L71 17L74 44Q80 62 68 74Q50 86 32 74Q20 62 26 44z" fill="#151012"/>` +
+      `<circle cx="40" cy="50" r="7" fill="#fff"/><circle cx="60" cy="50" r="7" fill="#fff"/><circle cx="41" cy="51" r="3.2" fill="#151012"/><circle cx="61" cy="51" r="3.2" fill="#151012"/>` +
+      `<circle cx="42.3" cy="49.6" r="1.1" fill="#fff"/><circle cx="62.3" cy="49.6" r="1.1" fill="#fff"/>` +
+      `<path d="M27 56l-12-2M27 60l-11 3M73 56l12-2M73 60l11 3" stroke="#151012" stroke-width="1.3" stroke-linecap="round"/>` + TOMATO(74, 79, 11)),
+    sticker: SVG("0 0 48 48", TDEF + TOMATO(24, 27, 17)),
+    divider: [SVG("0 0 24 24", TDEF + TOMATO(12, 13.5, 9)), SVG("0 0 24 24", STAR(12, 12, 10, "#F2C230")), SVG("0 0 24 24", TDEF + TOMATO(12, 13.5, 9))]
+  },
+  {
+    id: "lace", name: "White roses & lace", sw: ["#FFFDFC", "#E7A9B3"],
+    dot: SVG("0 0 24 24", PDEF + PEARL(12, 12, 8)),
+    head: SVG("0 0 96 96", PDEF + BUD(14, 74, 5) + BUD(82, 20, 4) + ROSE(52, 46, 30) + `<g transform="translate(4 56) scale(.62)">${BOW("#FFFFFF", "#E2CFCF", "#F3E6E6")}</g>` + PEARL(84, 70, 4) + PEARL(20, 26, 3)),
+    sticker: SVG("0 0 64 52", BOW("#FFFFFF", "#DCC6C6", "#F1E4E4")),
+    divider: [SVG("0 0 24 24", PDEF + PEARL(12, 12, 6)), SVG("0 0 40 40", ROSE(20, 20, 17)), SVG("0 0 24 24", PDEF + PEARL(12, 12, 6))]
+  },
+  {
+    id: "ribbon", name: "Red ribbon & hearts", sw: ["#F1D9CF", "#8E1622"],
+    dot: SVG("0 0 24 24", HEART(12, 12.5, .78, "#8E1622")),
+    head: SVG("0 0 96 96", PDEF + `<g transform="translate(10 18) scale(1.18)">${BOW("#8E1622", "#5E0C14", "#C24451")}</g>` +
+      PEARL(41, 41, 3.4) + PEARL(48, 44, 3) + PEARL(55, 41, 3.4) + HEART(12, 84, .4, "#8E1622") + HEART(86, 82, .34, "#8E1622") + HEART(82, 12, .3, "#8E1622")),
+    sticker: SVG("0 0 64 52", BOW("#8E1622", "#5E0C14", "#C24451")),
+    divider: [SVG("0 0 24 24", HEART(12, 12.5, .7, "#8E1622")), SVG("0 0 64 52", BOW("#8E1622", "#5E0C14", "#C24451")), SVG("0 0 24 24", HEART(12, 12.5, .7, "#8E1622"))]
+  },
+  {
+    id: "crimson", name: "Crimson lace & crystals", sw: ["#FFFFFF", "#B0121F"],
+    dot: SVG("0 0 24 24", GDEF + STONE(12, 12, 8.5)),
+    head: CROSS(),
+    sticker: CROSS(),
+    divider: [SVG("0 0 24 24", GDEF + STONE(12, 12, 8)), CROSS(), SVG("0 0 24 24", GDEF + STONE(12, 12, 8))]
+  }
+];
+const theme = () => THEMES.find(t => t.id === (state && state.theme)) || THEMES[0];
 
 /* ---------- firebase ---------- */
 const app = initializeApp(FIREBASE_CONFIG);
@@ -311,6 +453,7 @@ function countdownHTML() {
 const ta = (cls, bind, val, ph, label) => `<textarea class="${cls}" rows="1" data-bind="${bind}" aria-label="${esc(label)}" placeholder="${esc(ph)}">${esc(val)}</textarea>`;
 
 function dayView(d) {
+  const M = theme();
   const idx = state.days.indexOf(d);
   const first = d.long.split(",")[0];
   const items = d.items.map((it, i) => {
@@ -320,7 +463,7 @@ function dayView(d) {
       (i < d.items.length - 1 ? `<button type="button" data-act="down" data-day="${d.id}" data-id="${it.id}">Move down</button>` : "") +
       `<button type="button" class="danger" data-act="del" data-day="${d.id}" data-id="${it.id}">Remove</button></div>` : "";
     return `<div class="item"><div class="when"><input type="text" data-bind="${b}time" value="${esc(it.time)}" placeholder="time" aria-label="Time"></div>` +
-      `<div class="body"><div class="titlerow">${ta("ititle", b + "title", it.title, "What are we doing?", "Plan")}` +
+      `<div class="body">${M.dot ? `<span class="mdot">${M.dot}</span>` : ""}<div class="titlerow">${ta("ititle", b + "title", it.title, "What are we doing?", "Plan")}` +
       `<button type="button" class="more" data-act="menu" data-id="${it.id}" aria-expanded="${openMenu === it.id}" aria-label="Move or remove this plan">⋯</button></div>` +
       ta("inote", b + "note", it.note, "add a note…", "Note") + tools + "</div></div>";
   }).join("");
@@ -328,7 +471,7 @@ function dayView(d) {
     `<input class="subtitle" type="text" data-bind="day|${d.id}|title" value="${esc(d.title)}" placeholder="Give this day a title" aria-label="Day title"></div>` +
     `<div class="timeline">${items}</div>` +
     `<button type="button" class="add" data-act="additem" data-day="${d.id}">+ Add to ${esc(first)}</button>` +
-    `<div class="paper"><h3>Notes for ${esc(first)}</h3><p class="hint">Anything for this day: ideas, reminders, little things.</p>` +
+    `<div class="paper">${stickerHTML()}<h3>Notes for ${esc(first)}</h3><p class="hint">Anything for this day: ideas, reminders, little things.</p>` +
     ta("lined", `day|${d.id}|note`, d.note, "", "Notes for " + d.long) + "</div></section>";
 }
 function placesView() {
@@ -366,7 +509,7 @@ function notesView() {
   return `<section class="view"><div class="dayhead"><span class="eyebrow">Before and during</span><h2>Checklist</h2></div>` +
     `<p class="progress">${done} of ${state.checks.length} done</p><ul class="checks">${list}</ul>` +
     '<form class="addrow" data-form="check"><input id="nc-text" name="text" type="text" placeholder="Add something to remember" aria-label="New checklist item"><button class="cta" type="submit">Add</button></form>' +
-    '<div class="paper"><h3>Notes to each other</h3><p class="hint">Write anything here. It stays on the page for both of you.</p>' +
+    '<div class="paper">' + stickerHTML() + '<h3>Notes to each other</h3><p class="hint">Write anything here. It stays on the page for both of you.</p>' +
     ta("lined", "notes", state.notes, "", "Notes to each other") + "</div></section>";
 }
 
@@ -377,6 +520,7 @@ function letterCardHTML(v) {
   if (!letterOpen()) return `<div class="lettercard locked" aria-disabled="true"><span class="lc-icon">${LOCK_SVG}</span><span class="lc-text"><b>A letter</b><small>Opens when we say goodbye</small></span></div>`;
   return `<a class="lettercard" href="#letter"><span class="lc-icon">${ENV_SVG}</span><span class="lc-text"><b>A letter for you</b><small>Open it ♡</small></span></a>`;
 }
+function stickerHTML() { const T = theme(); return T.sticker ? `<span class="sticker">${T.sticker}</span>` : ""; }
 function letterView() {
   let body;
   if (letterText === null && !letterErr) { loadLetter(); body = '<span class="hint">Opening…</span>'; }
@@ -433,7 +577,8 @@ function render() {
   if (wk) { renderWriter(wk); return; }
   if (!state) { root.innerHTML = '<div class="wrap"><header class="top"><span class="names">Nathan &amp; Heather</span><h1>Beloved Strangers</h1></header>' + statusHTML() + "</div>"; return; }
   const ui = snapshotUI();
-  document.documentElement.setAttribute("data-palette", state.theme === "rose" ? "rose" : "peach");
+  const T = theme();
+  document.documentElement.setAttribute("data-palette", T.id);
   const v = currentView();
   const tabs = state.days.map(d => `<a class="tab" href="#${d.id}"${v === d.id ? ' aria-current="page"' : ""}>${esc(d.short)}</a>`).join("") +
     `<a class="tab" href="#places"${v === "places" ? ' aria-current="page"' : ""}>Places</a>` +
@@ -442,13 +587,12 @@ function render() {
   const body = v === "letter" ? letterView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
   root.innerHTML = '<div class="wrap">' +
     '<header class="top"><div class="toprow"><span class="names">Nathan &amp; Heather</span>' +
-    '<div class="swatches" role="group" aria-label="Colour theme"><span>Theme</span>' +
-    `<button type="button" class="sw peach" data-act="theme" data-theme="peach" aria-pressed="${state.theme !== "rose"}" aria-label="Peach and cream"></button>` +
-    `<button type="button" class="sw rose" data-act="theme" data-theme="rose" aria-pressed="${state.theme === "rose"}" aria-label="Dusty rose and plum"></button></div></div>` +
+    '<div class="swatches" role="group" aria-label="Colour theme">' +
+    THEMES.map(t => `<button type="button" class="sw" style="background:linear-gradient(135deg,${t.sw[0]} 50%,${t.sw[1]} 50%)" data-act="theme" data-theme="${t.id}" aria-pressed="${T.id === t.id}" aria-label="${esc(t.name)} theme" title="${esc(t.name)}"></button>`).join("") + '</div></div>' +
     '<h1>Beloved Strangers</h1><div class="dates">Fri 4 – Sun 6 December 2026 · Kuala Lumpur</div>' +
-    `<div id="cd">${countdownHTML()}</div></header>` +
+    `<div id="cd">${countdownHTML()}</div>` + (T.head ? `<div class="motif-head">${T.head}</div>` : "") + '</header>' +
     `<nav class="tabs" aria-label="Sections"><div class="tabrow">${tabs}</div>${statusHTML()}</nav>` +
-    body + letterCardHTML(v) + '<footer lang="vi">Một trăm năm liệu có đủ để yêu em?</footer></div>';
+    body + letterCardHTML(v) + (T.divider ? `<div class="motif-row">${T.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + '<footer lang="vi">Một trăm năm liệu có đủ để yêu em?</footer></div>';
   root.querySelectorAll("textarea").forEach(grow);
   restoreUI(ui);
 }
