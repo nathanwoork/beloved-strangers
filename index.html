@@ -526,13 +526,13 @@ function greetingHTML() {
   const hello = hr >= 5 && hr < 12 ? "Good morning" : hr >= 12 && hr < 17 ? "Good afternoon" : hr >= 17 && hr < 22 ? "Good evening" : "Still up";
   const day = t.toISOString().slice(0, 10);
   let line;
-  if (now >= LETTER_AT) line = "missing you already ♡";
-  else if (day === "2026-12-04") line = now < START ? "today's finally the day ♡" : "you're here, finally ♡";
-  else if (day === "2026-12-05") line = "tea, scones and a long chat tonight ♡";
-  else if (day === "2026-12-06") line = "our last day, let's make it count ♡";
+  if (now >= LETTER_AT) line = "for you, a thousand times over";
+  else if (day === "2026-12-04") line = now < START ? "today's finally the day" : "you're here, finally";
+  else if (day === "2026-12-05") line = "tea, flowers, and 2 years in 1 night";
+  else if (day === "2026-12-06") line = "our last day, let's make it count";
   else {
     const sleeps = Math.round((Date.UTC(2026, 11, 4) - Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate())) / 864e5);
-    line = sleeps === 1 ? "one more sleep ♡" : `${sleeps} more sleeps ♡`;
+    line = sleeps === 1 ? "one more sleep" : `${sleeps} more sleeps`;
   }
   const cap = line.charAt(0).toUpperCase() + line.slice(1);
   return `<p class="greet">${hello}, Heather${hello === "Still up" ? "?" : "."} ${cap}</p>`;
