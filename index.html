@@ -256,6 +256,10 @@ footer{margin-top:40px; text-align:center; font-family:var(--hand); font-size:22
 /* Vietnamese line: a handwriting face that has every Vietnamese accent */
 footer{font-family:"Dancing Script", var(--hand); font-weight:500; font-size:24px}
 
+/* Songs tab before 4 December: visible but greyed out and not clickable */
+.tab-locked{display:inline-flex; align-items:center; gap:5px; opacity:.55; border-style:dashed; background:transparent; cursor:not-allowed; filter:grayscale(1)}
+.tab-locked small{font-size:11px; opacity:.85}
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -276,6 +280,8 @@ const DAYSTART = { fri: "2026-12-04", sat: "2026-12-05", sun: "2026-12-06" };
 const DAYMETA = { fri: { short: "Fri 4", long: "Friday, 4 December" }, sat: { short: "Sat 5", long: "Saturday, 5 December" }, sun: { short: "Sun 6", long: "Sunday, 6 December" } };
 const CATS = [{ id: "dinner", name: "Dinner ideas" }, { id: "rain", name: "Saturday backups" }, { id: "sunday", name: "Sunday before the flight" }, { id: "sweet", name: "Late night and sweet" }];
 const letterOpen = () => Date.now() >= LETTER_AT;
+const SONGS_AT = new Date("2026-12-04T00:00:00+08:00").getTime();
+const songsOpen = () => Date.now() >= SONGS_AT;
 
 /* ---------- themes (palettes live in CSS; drawings live here) ---------- */
 const SVG = (vb, body) => `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${body}</svg>`;
@@ -474,7 +480,7 @@ function defaultView() {
 }
 function currentView() {
   const h = location.hash.replace("#", "");
-  return (VIEWS.includes(h) && (h !== "letter" || letterOpen())) ? h : defaultView();
+  return (VIEWS.includes(h) && (h !== "letter" || letterOpen()) && (h !== "songs" || songsOpen())) ? h : defaultView();
 }
 const writerKey = () => { const m = location.hash.match(/^#write-([A-Za-z0-9]{12,})$/); return m ? m[1] : null; };
 
@@ -625,6 +631,7 @@ function songsView() {
     (songMsg ? `<p class="fine songmsg" role="alert">${songMsg}</p>` : '<p class="fine">Tap a cover to open the song in Spotify. In Spotify, Share → Copy link gives you a link to paste here.</p>') +
     '</section>';
 }
+const TAB_LOCK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 function stickerHTML() { const T = theme(); return T.sticker ? `<span class="sticker">${T.sticker}</span>` : ""; }
 function letterView() {
   let body;
@@ -687,7 +694,8 @@ function render() {
   const v = currentView();
   const tabs = state.days.map(d => `<a class="tab" href="#${d.id}"${v === d.id ? ' aria-current="page"' : ""}>${esc(d.short)}</a>`).join("") +
     `<a class="tab" href="#places"${v === "places" ? ' aria-current="page"' : ""}>Places</a>` +
-    `<a class="tab" href="#songs"${v === "songs" ? ' aria-current="page"' : ""}>Songs</a>` +
+    (songsOpen() ? `<a class="tab" href="#songs"${v === "songs" ? ' aria-current="page"' : ""}>Songs</a>`
+      : `<span class="tab tab-locked" aria-disabled="true" title="Opens on 4 December">${TAB_LOCK}Songs<small>4 Dec</small></span>`) +
     `<a class="tab" href="#notes"${v === "notes" ? ' aria-current="page"' : ""}>To-do &amp; notes</a>` +
     (letterOpen() ? `<a class="tab" href="#letter"${v === "letter" ? ' aria-current="page"' : ""}>A letter ♡</a>` : "");
   const body = v === "letter" ? letterView() : v === "songs" ? songsView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
@@ -771,9 +779,10 @@ root.addEventListener("submit", e => {
   render();
 });
 window.addEventListener("hashchange", () => { openMenu = null; render(); window.scrollTo(0, 0); });
-let wasOpen = letterOpen();
+let wasOpen = letterOpen(), wasSongs = songsOpen();
 setInterval(() => {
   const el = document.getElementById("cd"); if (el) el.innerHTML = countdownHTML();
+  if (!wasSongs && songsOpen()) { wasSongs = true; render(); }
   if (!wasOpen && letterOpen()) { wasOpen = true; if (location.hash === "#letter") render(); else location.hash = "letter"; }
 }, 30000);
 
