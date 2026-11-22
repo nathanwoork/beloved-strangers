@@ -235,8 +235,8 @@ footer{margin-top:40px; text-align:center; font-family:var(--hand); font-size:22
 .tile-row{display:flex; align-items:flex-start; gap:4px}
 .tile-text{flex:1; min-width:0; display:flex; flex-direction:column}
 .tile-title,.tile-artist{width:100%; border:none; background:transparent; padding:0; text-overflow:ellipsis}
-.tile-title{resize:none; overflow:hidden; display:block; font-weight:600; font-size:15px; line-height:1.3; color:var(--ink)}
-.tile-artist{font-size:13px; line-height:1.3; color:var(--muted)}
+.tile-title{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; font-weight:600; font-size:15px; line-height:1.3; color:var(--ink)}
+.tile-artist{display:block; white-space:nowrap; overflow:hidden; font-size:13px; line-height:1.3; color:var(--muted)}
 .tile-title:focus,.tile-artist:focus{outline:none; box-shadow:inset 0 -1px 0 var(--accent)}
 .heart{flex:0 0 auto; width:32px; height:32px; margin:-4px -6px 0 0; border:none; background:none; display:grid; place-content:center; border-radius:50%}
 .heart svg path{fill:transparent; stroke:var(--muted); stroke-width:1.7}
@@ -612,8 +612,8 @@ function songsView() {
     return `<article class="tile">` +
       `<a class="tile-art" href="${esc(sg.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(sg.title)} in Spotify">${art}</a>` +
       `<div class="tile-row"><div class="tile-text">` +
-      `<textarea class="tile-title" rows="1" data-bind="song|${sg.id}|title" aria-label="Song title">${esc(sg.title)}</textarea>` +
-      `<input class="tile-artist" type="text" data-bind="song|${sg.id}|artist" value="${esc(sg.artist || "")}" placeholder="Singer name" aria-label="Singer">` +
+      `<b class="tile-title" title="${esc(sg.title)}">${esc(sg.title)}</b>` +
+      (sg.artist ? `<span class="tile-artist">${esc(sg.artist)}</span>` : `<input class="tile-artist" type="text" data-bind="song|${sg.id}|artist" value="" placeholder="Singer name" aria-label="Singer">`) +
       `</div><button type="button" class="heart${sg.fav ? " on" : ""}" data-act="fav" data-id="${sg.id}" aria-pressed="${!!sg.fav}" aria-label="${sg.fav ? "Unfavourite" : "Favourite"} ${esc(sg.title)}">${HEART_SVG}</button></div>` +
       ta("tile-note", `song|${sg.id}|note`, sg.note, "a little note…", "Note about " + sg.title) +
       `<button type="button" class="x tile-x" data-act="delsong" data-id="${sg.id}" aria-label="Remove ${esc(sg.title)}">×</button>` +
