@@ -218,30 +218,40 @@ footer{margin-top:40px; text-align:center; font-family:var(--hand); font-size:22
 :root[data-palette="lace"] .motif-head svg,:root[data-palette="lace"] .sticker svg,:root[data-palette="lace"] .mdot svg,:root[data-palette="lace"] .motif-row svg{filter:drop-shadow(0 1px 1.5px rgba(150,90,100,.38))}
 :root[data-palette="crimson"] .mdot svg,:root[data-palette="crimson"] .motif-row svg{filter:drop-shadow(0 1px 1px rgba(80,80,90,.3))}
 
-/* ---------- songs ---------- */
+/* ---------- songs gallery ---------- */
+.pl-card{display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:16px; padding:10px 14px 10px 10px; margin-bottom:16px}
+.pl-card img,.pl-art{width:56px; height:56px; border-radius:10px; object-fit:cover; display:grid; place-content:center; background:var(--accent-soft); color:var(--accent-ink); flex:0 0 auto}
+.pl-text{display:flex; flex-direction:column; min-width:0}
+.pl-text b{font-family:var(--display); font-size:18px; font-weight:600; line-height:1.2}
+.pl-text small{font-size:13px; color:var(--muted)}
+.pl-card::after{content:""; margin-left:auto; width:10px; height:10px; border-top:2px solid var(--muted); border-right:2px solid var(--muted); transform:rotate(45deg); flex:0 0 auto}
+.gallery{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:18px 14px}
+@media (min-width:520px){ .gallery{grid-template-columns:repeat(3, minmax(0,1fr))} }
+.tile{position:relative; display:flex; flex-direction:column; gap:6px; min-width:0}
+.tile-art{display:block; aspect-ratio:1/1; border-radius:14px; overflow:hidden; background:#2B2A2E; box-shadow:0 8px 18px -10px rgba(40,20,20,.5)}
+.tile-art img{width:100%; height:100%; object-fit:cover; display:block}
+.tile-blank{width:100%; height:100%; display:grid; place-content:center; color:#E9E6E9; background:linear-gradient(150deg,#4A474C,#2B2A2E)}
+.tile-blank svg{width:44%; height:auto}
+.tile-row{display:flex; align-items:flex-start; gap:4px}
+.tile-text{flex:1; min-width:0; display:flex; flex-direction:column}
+.tile-title,.tile-artist{width:100%; border:none; background:transparent; padding:0; text-overflow:ellipsis}
+.tile-title{resize:none; overflow:hidden; display:block; font-weight:600; font-size:15px; line-height:1.3; color:var(--ink)}
+.tile-artist{font-size:13px; line-height:1.3; color:var(--muted)}
+.tile-title:focus,.tile-artist:focus{outline:none; box-shadow:inset 0 -1px 0 var(--accent)}
+.heart{flex:0 0 auto; width:32px; height:32px; margin:-4px -6px 0 0; border:none; background:none; display:grid; place-content:center; border-radius:50%}
+.heart svg path{fill:transparent; stroke:var(--muted); stroke-width:1.7}
+.heart.on svg path{fill:var(--accent); stroke:var(--accent)}
+.tile-note{display:block; width:100%; border:none; border-bottom:1px dashed var(--line); background:transparent; font-family:var(--hand); font-size:19px; line-height:1.15; color:var(--accent-ink); padding:0 0 2px; resize:none; overflow:hidden; min-height:24px}
+.tile-note::placeholder{color:var(--muted); opacity:.6}
+.tile-note:focus{outline:none; border-bottom-color:var(--accent)}
+.tile-x{position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:50%; background:rgba(20,16,18,.55); color:#fff; font-size:16px; line-height:1; opacity:0; transition:opacity .15s}
+.tile:hover .tile-x,.tile:focus-within .tile-x{opacity:1}
+@media (hover:none){ .tile-x{opacity:.85} }
+.songadd{margin-top:26px}
 .songadd input{font-size:15px}
 .songmsg a{color:var(--accent-ink)}
-.songs{display:flex; flex-direction:column; gap:10px; margin-top:14px}
-.song{display:grid; grid-template-columns:64px 1fr; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px; position:relative}
-.song.playing{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft)}
-.song-art{width:64px; height:64px; border-radius:10px; object-fit:cover; background:var(--accent-soft); display:grid; place-content:center; color:var(--accent-ink)}
-.song-body{min-width:0; display:flex; flex-direction:column; gap:2px}
-.song-kind{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-ink); font-weight:600}
-.song-title{font-family:var(--display); font-size:17px; font-weight:600; line-height:1.25; overflow-wrap:anywhere}
-.song-note{font-size:20px}
-.song-actions{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px}
-.song-actions .ghost{text-decoration:none; font-size:13px}
-.song-actions .spot{background:#1DB954; border-color:#1DB954; color:#08210F; font-weight:600}
-.song .x{position:absolute; top:4px; right:4px}
-.song-kind{padding-right:28px}
 .empty{font-family:var(--hand); font-size:24px; color:var(--muted); margin:18px 0}
 .cta[disabled]{opacity:.6}
-#dock{position:fixed; left:0; right:0; bottom:0; z-index:20; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); background:linear-gradient(to top, var(--paper) 70%, transparent)}
-#dock[hidden]{display:none}
-.dock-in{max-width:560px; margin:0 auto; position:relative}
-.dock-in iframe{display:block; width:100%; border:0; border-radius:12px; box-shadow:0 6px 20px -8px rgba(40,20,20,.45)}
-.dock-x{position:absolute; top:-10px; right:-6px; width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:18px; line-height:1}
-body.has-dock .wrap{padding-bottom:200px}
 
 /* Vietnamese line: a handwriting face that has every Vietnamese accent */
 footer{font-family:"Dancing Script", var(--hand); font-weight:500; font-size:24px}
@@ -251,7 +261,6 @@ footer{font-family:"Dancing Script", var(--hand); font-weight:500; font-size:24p
 </head>
 <body>
 <div id="root"></div>
-<div id="dock" hidden></div>
 <script type="application/json" id="seed">{"theme": "peach", "days": [{"id": "fri", "short": "Fri 4", "long": "Friday, 4 December", "title": "Pickup, kopi and gifts", "note": "", "items": [{"id": "f1", "time": "1:20 pm", "title": "Pick up Heather", "note": ""}, {"id": "f2", "time": "1:45 pm", "title": "Oriental Kopi", "note": ""}, {"id": "f3", "time": "2:15 pm", "title": "Uniqlo cardigan + gift buying", "note": ""}, {"id": "f4", "time": "Evening", "title": "Dinner (still deciding)", "note": "Ideas in Places → Dinner ideas"}, {"id": "f5", "time": "8–9 pm", "title": "Get home", "note": ""}, {"id": "f6", "time": "9:00 pm", "title": "Shower, unpack, write on the whiteboard, play with Summer", "note": ""}, {"id": "f7", "time": "9 pm +", "title": "Still hungry? The burger guy", "note": "Could do this on Saturday too"}, {"id": "f8", "time": "Late", "title": "Overcooked, exchange gifts, ice cream, a little chat", "note": ""}]}, {"id": "sat", "short": "Sat 5", "long": "Saturday, 5 December", "title": "Tea house, the outdoor spot, Eurodeli", "note": "", "items": [{"id": "s1", "time": "11:00 am", "title": "Leave the house (at the latest)", "note": ""}, {"id": "s2", "time": "11:20 am", "title": "Miss Ellie Tea House for breakfast / lunch", "note": "Taman Melawati"}, {"id": "s3", "time": "Afternoon", "title": "The outdoorsy place", "note": "Fingers crossed for no rain. Backups in Places"}, {"id": "s4", "time": "5–7 pm", "title": "Eurodeli dinner", "note": "Nathan to book the table"}, {"id": "s5", "time": "Evening", "title": "Back to Summer, freshen up, the things Nathan planned", "note": ""}, {"id": "s6", "time": "Late", "title": "Heart to heart", "note": "A long, long chat"}]}, {"id": "sun", "short": "Sun 6", "long": "Sunday, 6 December", "title": "Last morning, then the flight", "note": "", "items": [{"id": "u1", "time": "Morning", "title": "Slow morning + pack", "note": "Still to plan"}, {"id": "u2", "time": "Late morning", "title": "Brunch somewhere nice", "note": "Pick one from Places → Sunday before the flight"}, {"id": "u3", "time": "TBD", "title": "Leave for the airport", "note": "Work back from the 6pm flight"}, {"id": "u4", "time": "6:00 pm", "title": "Flight", "note": ""}]}], "places": [{"id": "p3", "cat": "dinner", "name": "Wherever we finish shopping", "area": "Near Uniqlo", "why": "Lowest effort if gift buying runs late."}, {"id": "p4", "cat": "rain", "name": "Stay longer at Miss Ellie", "area": "Taman Melawati", "why": "Another pot of tea and the scones. It's cosy indoors."}, {"id": "p6", "cat": "rain", "name": "Taman Melawati Lake", "area": "Taman Melawati", "why": "If it clears up: a short stroll with hill views."}, {"id": "p12", "cat": "sweet", "name": "The burger guy", "area": "Friday or Saturday night", "why": "For when we're still hungry after 9."}, {"id": "p13", "cat": "sweet", "name": "Ice cream run", "area": "After Overcooked", "why": ""}, {"id": "p1syluz", "cat": "dinner", "name": "Oriental Kopi on Friday", "area": "IOI City Mall", "why": ""}, {"id": "p8l8kju", "cat": "dinner", "name": "Euro Deli", "area": "Somewhere Downtown, MAKE RESERVATIONS", "why": ""}], "checks": [{"id": "c1", "text": "Book Eurodeli for Saturday, 5–7 pm", "done": false}, {"id": "c2", "text": "Gifts bought and wrapped", "done": false}, {"id": "c3", "text": "Whiteboard markers", "done": true}, {"id": "c4", "text": "Overcooked set up and ready", "done": false}, {"id": "c5", "text": "Check Saturday's weather", "done": false}, {"id": "c6", "text": "Confirm flight time and terminal", "done": false}], "notes": ""}</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -389,7 +398,8 @@ function fromDoc(d) {
     }),
     places: sortMap(d.places),
     checks: sortMap(d.checks),
-    songs: sortMap(d.songs)
+    songs: sortMap(d.songs),
+    playlist: d.playlist || null
   };
 }
 
@@ -400,7 +410,7 @@ function pathFor(bind) {
   if (p[0] === "day") return ["days", p[1], p[2]];
   if (p[0] === "place") return ["places", p[1], p[2]];
   if (p[0] === "check") return ["checks", p[1], "text"];
-  if (p[0] === "song") return ["songs", p[1], "note"];
+  if (p[0] === "song") return ["songs", p[1], p[2] || "note"];
   if (p[0] === "notes") return ["notes"];
   return null;
 }
@@ -411,7 +421,7 @@ function setLocal(bind, val) {
   else if (p[0] === "day") { o = day(p[1]); k = p[2]; }
   else if (p[0] === "place") { o = state.places.find(x => x.id === p[1]); k = p[2]; }
   else if (p[0] === "check") { o = state.checks.find(x => x.id === p[1]); k = "text"; }
-  else if (p[0] === "song") { o = state.songs.find(x => x.id === p[1]); k = "note"; }
+  else if (p[0] === "song") { o = state.songs.find(x => x.id === p[1]); k = p[2] || "note"; }
   else if (p[0] === "notes") { o = state; k = "notes"; }
   if (o) o[k] = val;
 }
@@ -553,10 +563,10 @@ function letterCardHTML(v) {
   if (!letterOpen()) return `<div class="lettercard locked" aria-disabled="true"><span class="lc-icon">${LOCK_SVG}</span><span class="lc-text"><b>A letter</b><small>Opens when we say goodbye</small></span></div>`;
   return `<a class="lettercard" href="#letter"><span class="lc-icon">${ENV_SVG}</span><span class="lc-text"><b>A letter for you</b><small>Open it ♡</small></span></a>`;
 }
-/* ---------- songs (Spotify) ---------- */
-const NOTE_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>';
-const KIND_LABEL = { track: "Song", album: "Album", playlist: "Playlist", episode: "Episode", artist: "Artist", link: "Spotify link" };
-let songMsg = "", songBusy = false, nowPlaying = null;
+/* ---------- songs (Spotify gallery) ---------- */
+const NOTE_SVG = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>';
+const HEART_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 20.5s-7.6-4.7-9.6-9.3C.8 7.4 3.4 4 6.9 4c2.1 0 3.6 1.2 5.1 3.1C13.5 5.2 15 4 17.1 4c3.5 0 6.1 3.4 4.5 7.2-2 4.6-9.6 9.3-9.6 9.3z"/></svg>';
+let songMsg = "", songBusy = false;
 function parseSpotify(raw) {
   const s = (raw || "").trim();
   const m = s.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(track|album|playlist|episode|artist)\/([A-Za-z0-9]{22})/) || s.match(/^spotify:(track|album|playlist|episode|artist):([A-Za-z0-9]{22})$/);
@@ -565,7 +575,7 @@ function parseSpotify(raw) {
   return null;
 }
 async function songInfo(p) {
-  // Spotify's public oEmbed gives the title, cover art and the embeddable player address. No login needed.
+  // Spotify's public oEmbed gives the title and cover art. No login needed.
   try {
     const r = await fetch("https://open.spotify.com/oembed?url=" + encodeURIComponent(p.url));
     if (!r.ok) return {};
@@ -585,42 +595,35 @@ async function addSong(raw) {
   }
   songBusy = true; songMsg = ""; render();
   const info = await songInfo(p);
-  const song = { kind: info.kind || p.kind, sid: info.sid || p.sid, url: info.url || p.url, title: info.title || "A Spotify " + (KIND_LABEL[info.kind || p.kind] || "link").toLowerCase(), art: info.art || "", note: "", order: nextOrder(state.songs) };
+  const song = { kind: info.kind || p.kind, sid: info.sid || p.sid, url: info.url || p.url, title: info.title || "Untitled", artist: "", art: info.art || "", note: "", fav: false, order: nextOrder(state.songs) };
   const id = uid("m");
   state.songs.push(Object.assign({ id }, song));
   songBusy = false;
   writeNow(["songs", id], song);
   render();
 }
-function playSong(id) {
-  const sg = state.songs.find(x => x.id === id); if (!sg || !sg.sid) return;
-  nowPlaying = id;
-  const dock = document.getElementById("dock");
-  const h = sg.kind === "track" || sg.kind === "episode" ? 80 : 152;
-  dock.innerHTML = `<div class="dock-in"><iframe title="Spotify player: ${esc(sg.title)}" src="https://open.spotify.com/embed/${sg.kind}/${sg.sid}?utm_source=generator" height="${h}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>` +
-    `<button type="button" class="dock-x" data-dock="close" aria-label="Close the player">×</button></div>`;
-  dock.hidden = false; document.body.classList.add("has-dock");
-  render();
-}
-function closeDock() { const dock = document.getElementById("dock"); dock.innerHTML = ""; dock.hidden = true; nowPlaying = null; document.body.classList.remove("has-dock"); render(); }
-document.getElementById("dock").addEventListener("click", e => { if (e.target.closest("[data-dock=close]")) closeDock(); });
 function songsView() {
-  const list = state.songs.map(sg => {
-    const playing = nowPlaying === sg.id;
-    return `<article class="song${playing ? " playing" : ""}">` +
-      (sg.art ? `<img class="song-art" src="${esc(sg.art)}" alt="" width="64" height="64" loading="lazy">` : `<span class="song-art blank">${NOTE_SVG}</span>`) +
-      `<div class="song-body"><span class="song-kind">${esc(KIND_LABEL[sg.kind] || "Spotify")}${playing ? " · playing" : ""}</span><b class="song-title">${esc(sg.title)}</b>` +
-      ta("inote song-note", `song|${sg.id}`, sg.note, "why this one…", "Note about " + sg.title) +
-      `<div class="song-actions">` +
-      (sg.sid ? `<button type="button" class="ghost" data-act="play" data-id="${sg.id}">${playing ? "Playing below" : "Play here"}</button>` : "") +
-      `<a class="ghost spot" href="${esc(sg.url)}" target="_blank" rel="noopener">Open in Spotify</a>` +
-      `<button type="button" class="x" data-act="delsong" data-id="${sg.id}" aria-label="Remove ${esc(sg.title)}">×</button></div></div></article>`;
+  const pl = state.playlist;
+  const head = pl && pl.url ? `<a class="pl-card" href="${esc(pl.url)}" target="_blank" rel="noopener">` +
+      (pl.art ? `<img src="${esc(pl.art)}" alt="" width="56" height="56">` : `<span class="pl-art">${NOTE_SVG}</span>`) +
+      `<span class="pl-text"><b>${esc(pl.name || "Our playlist")}</b><small>${state.songs.length} songs · Open in Spotify</small></span></a>` : "";
+  const tiles = state.songs.map(sg => {
+    const art = sg.art ? `<img src="${esc(sg.art)}" alt="" loading="lazy">` : `<span class="tile-blank">${NOTE_SVG}</span>`;
+    return `<article class="tile">` +
+      `<a class="tile-art" href="${esc(sg.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(sg.title)} in Spotify">${art}</a>` +
+      `<div class="tile-row"><div class="tile-text">` +
+      `<textarea class="tile-title" rows="1" data-bind="song|${sg.id}|title" aria-label="Song title">${esc(sg.title)}</textarea>` +
+      `<input class="tile-artist" type="text" data-bind="song|${sg.id}|artist" value="${esc(sg.artist || "")}" placeholder="Singer name" aria-label="Singer">` +
+      `</div><button type="button" class="heart${sg.fav ? " on" : ""}" data-act="fav" data-id="${sg.id}" aria-pressed="${!!sg.fav}" aria-label="${sg.fav ? "Unfavourite" : "Favourite"} ${esc(sg.title)}">${HEART_SVG}</button></div>` +
+      ta("tile-note", `song|${sg.id}|note`, sg.note, "a little note…", "Note about " + sg.title) +
+      `<button type="button" class="x tile-x" data-act="delsong" data-id="${sg.id}" aria-label="Remove ${esc(sg.title)}">×</button>` +
+      `</article>`;
   }).join("");
-  return `<section class="view"><div class="dayhead"><span class="eyebrow">For the drive and the late nights</span><h2>Our songs</h2></div>` +
-    '<form class="addrow songadd" data-form="song"><input id="song-url" name="url" type="text" inputmode="url" autocomplete="off" placeholder="Paste a Spotify song or playlist link" aria-label="Spotify link"><button class="cta" type="submit"' + (songBusy ? " disabled" : "") + '>' + (songBusy ? "Adding…" : "Add") + '</button></form>' +
-    (songMsg ? `<p class="fine songmsg" role="alert">${songMsg}</p>` : '<p class="fine">In Spotify: tap ⋯ or Share on a song or playlist, choose Copy link, and paste it here.</p>') +
-    (state.songs.length ? `<div class="songs">${list}</div>` : '<p class="empty">No songs yet. Add the first one ♡</p>') +
-    '<p class="fine">“Play here” plays inside this page, and keeps playing while you look at other tabs. Without a Spotify login in this browser you may only hear a preview, so tap “Open in Spotify” for the full song.</p></section>';
+  return `<section class="view"><div class="dayhead"><span class="eyebrow">For the drive and the late nights</span><h2>Our songs</h2></div>` + head +
+    (state.songs.length ? `<div class="gallery">${tiles}</div>` : '<p class="empty">No songs yet. Add the first one ♡</p>') +
+    '<form class="addrow songadd" data-form="song"><input id="song-url" name="url" type="text" inputmode="url" autocomplete="off" placeholder="Add a song: paste a Spotify link" aria-label="Spotify link"><button class="cta" type="submit"' + (songBusy ? " disabled" : "") + '>' + (songBusy ? "Adding…" : "Add") + '</button></form>' +
+    (songMsg ? `<p class="fine songmsg" role="alert">${songMsg}</p>` : '<p class="fine">Tap a cover to open the song in Spotify. In Spotify, Share → Copy link gives you a link to paste here.</p>') +
+    '</section>';
 }
 function stickerHTML() { const T = theme(); return T.sticker ? `<span class="sticker">${T.sticker}</span>` : ""; }
 function letterView() {
@@ -738,8 +741,8 @@ root.addEventListener("click", e => {
   }
   if (a === "del") { d.items = d.items.filter(x => x.id !== id); openMenu = null; render(); writeNow(["days", d.id, "items", id], deleteField()); return; }
   if (a === "delplace") { state.places = state.places.filter(x => x.id !== id); render(); writeNow(["places", id], deleteField()); return; }
-  if (a === "play") { playSong(id); return; }
-  if (a === "delsong") { if (nowPlaying === id) closeDock(); state.songs = state.songs.filter(x => x.id !== id); render(); writeNow(["songs", id], deleteField()); return; }
+  if (a === "fav") { const sg = state.songs.find(x => x.id === id); if (sg) { sg.fav = !sg.fav; render(); writeNow(["songs", id, "fav"], sg.fav); } return; }
+  if (a === "delsong") { state.songs = state.songs.filter(x => x.id !== id); render(); writeNow(["songs", id], deleteField()); return; }
   if (a === "delcheck") { state.checks = state.checks.filter(x => x.id !== id); render(); writeNow(["checks", id], deleteField()); return; }
   if (a === "toDay") {
     const p = state.places.find(x => x.id === id), to = day(document.getElementById("to-" + id).value);
@@ -781,7 +784,7 @@ function applyPending(s) {
   pending.forEach(({ path, value }) => {
     const bind = path[0] === "days" && path[2] === "items" ? `item|${path[1]}|${path[3]}|${path[4]}` :
       path[0] === "days" ? `day|${path[1]}|${path[2]}` : path[0] === "places" ? `place|${path[1]}|${path[2]}` :
-      path[0] === "checks" ? `check|${path[1]}` : path[0] === "songs" ? `song|${path[1]}` : path[0] === "notes" ? "notes" : null;
+      path[0] === "checks" ? `check|${path[1]}` : path[0] === "songs" ? `song|${path[1]}|${path[2]}` : path[0] === "notes" ? "notes" : null;
     if (bind) { const prev = state; state = s; setLocal(bind, value); state = prev; }
   });
   const a = document.activeElement;
