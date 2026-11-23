@@ -362,6 +362,41 @@ figure.print.strip .tag .ph-cap{font-size:15px}
 a.tab svg{vertical-align:-2px; margin-right:4px}
 .two-preview{margin:-8px 0 10px; font-style:italic}
 
+/* Song cards, in the style of a music player embed: dark, square-cornered, play button */
+.scards{display:grid; grid-template-columns:minmax(0,1fr); gap:14px}
+@media (min-width:600px){ .scards{grid-template-columns:repeat(2, minmax(0,1fr))} }
+.scard{--sc-bg:#151112; --sc-fg:#F6F1EE; --sc-mute:#A79D9A; position:relative; background:var(--sc-bg); color:var(--sc-fg);
+  border:5px solid color-mix(in srgb, var(--accent) 42%, transparent); outline:1px solid color-mix(in srgb, var(--accent) 70%, transparent); outline-offset:-1px;
+  box-shadow:0 14px 26px -16px rgba(30,10,10,.7); min-width:0}
+.scard-top{position:relative; display:flex; gap:12px; padding:12px 12px 10px}
+.scard-art{flex:0 0 auto; width:92px; height:92px; display:block; overflow:hidden; background:#2B2A2E}
+.scard-art img{width:100%; height:100%; object-fit:cover; display:block}
+.scard-body{flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; padding:2px 28px 34px 0}
+.scard-title{display:block; font-size:17px; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:-.01em}
+.scard-sub{display:flex; align-items:center; gap:7px; min-width:0}
+.scard-chip{flex:0 0 auto; font-size:10.5px; font-weight:600; letter-spacing:.06em; color:var(--sc-mute); border:1px solid #5a5052; padding:2px 5px; line-height:1}
+.scard-artist{flex:1; min-width:0; font-size:14px; color:var(--sc-mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border:none; background:transparent; padding:0}
+input.scard-artist::placeholder{color:#7d7371}
+input.scard-artist:focus{outline:none; box-shadow:inset 0 -1px 0 var(--accent)}
+.scard-fav{align-self:flex-start; display:inline-flex; align-items:center; gap:7px; border:none; background:none; color:var(--sc-fg); font-size:13px; font-weight:600; padding:2px 0; margin-top:2px}
+.scard-fav-ic{width:20px; height:20px; display:grid; place-content:center; border:1.6px solid var(--sc-fg); border-radius:50%; font-size:15px; font-weight:500; line-height:1}
+.scard-fav-ic svg{width:12px; height:12px}
+.scard-fav.on .scard-fav-ic{border-color:var(--accent); background:var(--accent)}
+.scard-fav.on .scard-fav-ic svg path{fill:#fff}
+.scard-mark{position:absolute; top:11px; right:12px; width:22px; height:22px; display:grid; place-content:center; color:var(--sc-mute)}
+.scard-mark svg{width:16px; height:16px}
+.scard-actions{position:absolute; right:12px; bottom:10px; display:flex; align-items:center; gap:10px}
+.scard-more{border:none; background:none; color:var(--sc-fg); font-size:11px; letter-spacing:1px; padding:6px 2px}
+.scard-remove{border:1px solid #6b5f61; background:transparent; color:var(--sc-fg); font-size:12px; padding:4px 8px}
+.scard-play{width:34px; height:34px; border-radius:50%; background:var(--sc-fg); display:grid; place-content:center; box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.scard-play svg{width:16px; height:16px; fill:var(--sc-bg); margin-left:2px}
+.scard-play:active{transform:scale(.94)}
+.scard-note{display:block; width:100%; border:none; border-top:1px dashed #3d3436; background:transparent; resize:none; overflow:hidden;
+  font-family:var(--hand); font-size:19px; line-height:1.2; color:#F3D9CF; padding:8px 12px 10px; min-height:38px}
+.scard-note::placeholder{color:#7d7371}
+.scard-note:focus{outline:none; background:rgba(255,255,255,.03)}
+:root[lang="vi"] .scard-note{font-size:17px}
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -555,6 +590,7 @@ const tripRef = doc(db, "trip", "main");
 
 /* ---------- state ---------- */
 let state = null, status = "connecting", openMenu = null, filter = "all";
+let openSong = null;
 let pending = new Map(), flushTimer = null, letterText = null, letterErr = null;
 const root = document.getElementById("root");
 
@@ -847,23 +883,33 @@ function songsView() {
   const head = pl && pl.url ? `<a class="pl-card" href="${esc(pl.url)}" target="_blank" rel="noopener">` +
       (pl.art ? `<img src="${esc(pl.art)}" alt="" width="56" height="56">` : `<span class="pl-art">${NOTE_SVG}</span>`) +
       `<span class="pl-text"><b>${esc(pl.name || L("Our playlist", "Danh sách nhạc của tụi mình"))}</b><small>${L(`${state.songs.length} songs · Open in Spotify`, `${state.songs.length} bài · Mở trong Spotify`)}</small></span></a>` : "";
-  const tiles = state.songs.map(sg => {
+  const tiles = state.songs.map((sg, i) => {
     const art = sg.art ? `<img src="${esc(sg.art)}" alt="" loading="lazy">` : `<span class="tile-blank">${NOTE_SVG}</span>`;
-    return `<article class="tile">` +
-      `<a class="tile-art" href="${esc(sg.url)}" target="_blank" rel="noopener" aria-label="${esc(L(`Open ${sg.title} in Spotify`, `Mở ${sg.title} trong Spotify`))}">${art}</a>` +
-      `<div class="tile-row"><div class="tile-text">` +
-      `<b class="tile-title" title="${esc(sg.title)}">${esc(sg.title)}</b>` +
-      (sg.artist ? `<span class="tile-artist">${esc(sg.artist)}</span>` : `<input class="tile-artist" type="text" data-bind="song|${sg.id}|artist" value="" placeholder="${L("Singer name", "Tên ca sĩ")}" aria-label="${L("Singer", "Ca sĩ")}">`) +
-      `</div><button type="button" class="heart${sg.fav ? " on" : ""}" data-act="fav" data-id="${sg.id}" aria-pressed="${!!sg.fav}" aria-label="${sg.fav ? L("Unfavourite", "Bỏ thích") : L("Favourite", "Thích")} ${esc(sg.title)}">${HEART_SVG}</button></div>` +
-      ta("tile-note", `song|${sg.id}|note`, fv(`song|${sg.id}|note`, sg.note), L("a little note…", "một lời nhắn nhỏ…"), L("Note about ", "Ghi chú về ") + sg.title) +
-      `<button type="button" class="x tile-x" data-act="delsong" data-id="${sg.id}" aria-label="${L("Remove ", "Xoá ")}${esc(sg.title)}">×</button>` +
+    const open = esc(L(`Open ${sg.title} in Spotify`, `Mở ${sg.title} trong Spotify`));
+    return `<article class="scard">` +
+      `<div class="scard-top">` +
+      `<a class="scard-art" href="${esc(sg.url)}" target="_blank" rel="noopener" aria-label="${open}">${art}</a>` +
+      `<div class="scard-body">` +
+      `<b class="scard-title" title="${esc(sg.title)}">${esc(sg.title)}</b>` +
+      `<div class="scard-sub"><span class="scard-chip">${String(i + 1).padStart(2, "0")}</span>` +
+      (sg.artist ? `<span class="scard-artist">${esc(sg.artist)}</span>` : `<input class="scard-artist" type="text" data-bind="song|${sg.id}|artist" value="" placeholder="${L("Singer name", "Tên ca sĩ")}" aria-label="${L("Singer", "Ca sĩ")}">`) + `</div>` +
+      `<button type="button" class="scard-fav${sg.fav ? " on" : ""}" data-act="fav" data-id="${sg.id}" aria-pressed="${!!sg.fav}">` +
+      `<span class="scard-fav-ic" aria-hidden="true">${sg.fav ? HEART_SVG : "+"}</span>${sg.fav ? L("One of our favourites", "Bài tụi mình thích nhất") : L("Add to favourites", "Thêm vào yêu thích")}</button>` +
+      `</div>` +
+      `<span class="scard-mark" aria-hidden="true">${NOTE_SVG}</span>` +
+      `<div class="scard-actions">` +
+      (openSong === sg.id ? `<button type="button" class="scard-remove" data-act="delsong" data-id="${sg.id}">${L("Remove", "Xoá")}</button>` : "") +
+      `<button type="button" class="scard-more" data-act="songmenu" data-id="${sg.id}" aria-expanded="${openSong === sg.id}" aria-label="${L("More options", "Tuỳ chọn khác")}">•••</button>` +
+      `<a class="scard-play" href="${esc(sg.url)}" target="_blank" rel="noopener" aria-label="${open}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></a>` +
+      `</div></div>` +
+      ta("scard-note", `song|${sg.id}|note`, fv(`song|${sg.id}|note`, sg.note), L("a little note…", "một lời nhắn nhỏ…"), L("Note about ", "Ghi chú về ") + sg.title) +
       `</article>`;
   }).join("");
   return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("For the drive and the late nights", "Cho những chuyến xe và những đêm khuya")}</span><h2>${L("Our songs", "Những bài hát của tụi mình")}</h2></div>` +
     (songsOpen() ? "" : `<p class="fine two-preview">${L("Only you can see this until 4 December.", "Chỉ anh thấy được trang này cho đến ngày 4 tháng 12.")}</p>`) + head +
-    (state.songs.length ? `<div class="gallery">${tiles}</div>` : `<p class="empty">${L("No songs yet. Add the first one ♡", "Chưa có bài nào. Thêm bài đầu tiên nhé ♡")}</p>`) +
+    (state.songs.length ? `<div class="scards">${tiles}</div>` : `<p class="empty">${L("No songs yet. Add the first one ♡", "Chưa có bài nào. Thêm bài đầu tiên nhé ♡")}</p>`) +
     `<form class="addrow songadd" data-form="song"><input id="song-url" name="url" type="text" inputmode="url" autocomplete="off" placeholder="${L("Add a song: paste a Spotify link", "Thêm bài hát: dán link Spotify")}" aria-label="${L("Spotify link", "Link Spotify")}"><button class="cta" type="submit"` + (songBusy ? " disabled" : "") + '>' + (songBusy ? L("Adding…", "Đang thêm…") : L("Add", "Thêm")) + '</button></form>' +
-    (songMsg ? `<p class="fine songmsg" role="alert">${songMsg}</p>` : `<p class="fine">${L("Tap a cover to open the song in Spotify. In Spotify, Share → Copy link gives you a link to paste here.", "Chạm vào ảnh bìa để mở bài hát trong Spotify. Trong Spotify, chọn Chia sẻ → Sao chép liên kết để lấy link dán vào đây.")}</p>`) +
+    (songMsg ? `<p class="fine songmsg" role="alert">${songMsg}</p>` : `<p class="fine">${L("Tap a cover or ▶ to open the song in Spotify. In Spotify, Share → Copy link gives you a link to paste here.", "Chạm vào ảnh bìa hoặc ▶ để mở bài hát trong Spotify. Trong Spotify, chọn Chia sẻ → Sao chép liên kết để lấy link dán vào đây.")}</p>`) +
     '</section>';
 }
 const TAB_LOCK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
@@ -1096,6 +1142,7 @@ root.addEventListener("click", e => {
   const a = t.dataset.act, id = t.dataset.id, d = t.dataset.day ? day(t.dataset.day) : null;
   if (a === "hearts") { heartBurst(t); return; }
   if (a === "shuffle") { shuffleFront(); return; }
+  if (a === "songmenu") { openSong = openSong === id ? null : id; render(); return; }
   if (a === "lang") { if (t.dataset.lang !== lang) setLang(t.dataset.lang); return; }
   if (a === "letterorig") { letterOriginal = !letterOriginal; render(); return; }
   if (a === "filter") { filter = t.dataset.cat; render(); return; }
