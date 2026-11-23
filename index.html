@@ -410,6 +410,11 @@ input.scard-artist:focus{outline:none; box-shadow:inset 0 -1px 0 var(--accent)}
 @media (prefers-reduced-motion: reduce){ .quote.swap .q-text{animation:none} }
 :root[lang="vi"] .q-text{font-family:"Be Vietnam Pro", system-ui, sans-serif; font-style:normal; font-size:16px}
 
+.sb-one{display:flex; justify-content:center}
+.sb-one > figure{width:68%}
+.sb-s figure.print .tag{left:-8%; right:-8%}
+.sb-s figure.print .tag .ph-cap{font-size:15px}
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -960,9 +965,10 @@ function letterView() {
     `<div class="paper letter">${letterPhoto && !letterErr ? `<figure class="pola letter-pola" style="--r:-2deg"><span class="tape" aria-hidden="true"></span>${phImg(letterPhoto.id, letterPhoto.w, letterPhoto.h, ' data-k="letter"')}</figure>` : ""}<div class="letter-body">${body}</div></div>${toggle}</section>`;
 }
 /* ---------- photos of us: encrypted files in the repo, key kept in the shared trip doc ---------- */
-const PH = { 2: ["3c5017b986", 1280, 960], 3: ["8952fd25ad", 960, 1280], 4: ["20ecbadd20", 1280, 960], 5: ["dce470ac7a", 960, 1280], 6: ["015ecea9d9", 960, 1280], 7: ["167f7022ed", 960, 1280], 8: ["d4de74b6b1", 860, 1280], 9: ["8571bc2f3a", 960, 1280], 10: ["3b2ba25b6d", 720, 1280], 11: ["275d5f2884", 720, 1280], 12: ["07b959524c", 600, 415], 13: ["25de3defd0", 426, 1280], 14: ["c824adafac", 1280, 960], 15: ["9e5e69906d", 960, 1280], 16: ["3ec3a8c451", 1280, 720], 17: ["42cbf23640", 720, 1280], 18: ["014560fbfd", 1280, 720], 19: ["46b914091b", 1280, 720], 20: ["707fbb1269", 720, 1280] };
-const PH_ROWS = [["w", 18], ["p", 6, 9], ["s", 13, 11], ["w", 12], ["p", 17, 20], ["w", 14], ["p", 15, 10], ["w", 16], ["p", 8, 7], ["w", 4], ["p", 3, 5], ["ww", 19, 2]];
-const PH_PRINT = new Set([8, 13]);          // the booth sheet and booth strip stay as prints, not polaroids
+const PH = { 2: ["3c5017b986", 1280, 960], 3: ["8952fd25ad", 960, 1280], 4: ["20ecbadd20", 1280, 960], 5: ["dce470ac7a", 960, 1280], 6: ["015ecea9d9", 960, 1280], 7: ["167f7022ed", 960, 1280], 8: ["d4de74b6b1", 860, 1280], 9: ["8571bc2f3a", 960, 1280], 10: ["3b2ba25b6d", 720, 1280], 11: ["275d5f2884", 720, 1280], 12: ["07b959524c", 600, 415], 13: ["25de3defd0", 426, 1280], 14: ["c824adafac", 1280, 960], 15: ["9e5e69906d", 960, 1280], 16: ["3ec3a8c451", 1280, 720], 17: ["42cbf23640", 720, 1280], 18: ["014560fbfd", 1280, 720], 19: ["46b914091b", 1280, 720], 20: ["707fbb1269", 720, 1280], 21: ["0efcd3fdd4", 960, 1280], 22: ["e0d63dad5d", 960, 1280], 23: ["39d5044544", 720, 1280], 24: ["e4276e60f8", 561, 1232], 25: ["87d9083448", 960, 1280], 26: ["c99e685224", 751, 1280], 27: ["b7f1f94101", 960, 1280], 28: ["6a48ee8cd6", 960, 1280], 29: ["b2b7789c5e", 1280, 960], 30: ["ae64a907c4", 960, 1280], 31: ["dface66990", 1280, 960], 32: ["d326f0201b", 960, 1280], 33: ["5471288981", 640, 1280], 34: ["3c5134b274", 960, 1280], 35: ["dc70799ca6", 960, 1280], 36: ["c560031284", 1280, 960] };
+const PH_ROWS = [["w", 18], ["p", 6, 9], ["s", 13, 11], ["w", 12], ["p", 17, 20], ["w", 14], ["p", 15, 10], ["w", 16], ["p", 8, 7], ["w", 4], ["p", 3, 5], ["ww", 19, 2],
+  ["w", 36], ["p", 21, 35], ["s", 33, 26], ["p", 27, 30], ["w", 29], ["p", 28, 32], ["s", 24, 23], ["w", 31], ["p", 25, 22], ["one", 34]];
+const PH_PRINT = new Set([8, 13, 24, 33]);          // the booth sheet and booth strip stay as prints, not polaroids
 const PH_FRONT = [6, 9, 20];
 let photoKey = null, letterPhoto = null;
 const phUrl = {}, phBusy = {};
@@ -1017,8 +1023,9 @@ function usView() {
     if (kind === "w") inner = phCard(a, 1.2 * t, "wide");
     else if (kind === "ww") inner = phCard(a, -2.4, "wide") + phCard(b, 2.2, "wide");
     else if (kind === "s") inner = phCard(a, -1.6) + phCard(b, 2.4);
+    else if (kind === "one") inner = phCard(a, 1.8 * t);
     else inner = phCard(a, -2.6 * t) + phCard(b, 2 * t);
-    const doodle = i === 2 || i === 6 || i === 9 ? `<span class="sb-doodle d${i % 3}" aria-hidden="true">${HEART_SVG}</span>` : "";
+    const doodle = [2, 6, 9, 14, 18, 21].includes(i) ? `<span class="sb-doodle d${i % 3}" aria-hidden="true">${HEART_SVG}</span>` : "";
     return `<div class="sb sb-${kind}">${inner}${doodle}</div>`;
   }).join("");
   return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("So far", "Cho đến giờ")}</span><h2>${L("Two", "Đôi ta")}</h2></div>` +
