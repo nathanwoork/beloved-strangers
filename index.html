@@ -351,6 +351,8 @@ figure.print{margin-bottom:22px}
 .letter-pola{width:62%; margin:6px auto 22px !important; display:block}
 figure.print.strip .tag{left:-6%; right:-6%}
 figure.print.strip .tag .ph-cap{font-size:15px}
+a.tab svg{vertical-align:-2px; margin-right:4px}
+.two-preview{margin:-8px 0 10px; font-style:italic}
 
 .status:not(nav .status){margin-top:8px}
 </style>
@@ -447,6 +449,11 @@ function setLang(l) {
 document.documentElement.lang = lang;
 const SONGS_AT = new Date("2026-12-04T00:00:00+08:00").getTime();
 const songsOpen = () => Date.now() >= SONGS_AT;
+const TWO_AT = new Date("2026-12-05T00:00:00+08:00").getTime();
+const twoOpen = () => Date.now() >= TWO_AT;
+// Nathan's phone becomes the editor once he opens his private letter link on it
+const editorKey = () => { try { return localStorage.getItem("editor") || ""; } catch (e) { return ""; } };
+const canSeeTwo = () => twoOpen() || !!editorKey();
 
 /* ---------- themes (palettes live in CSS; drawings live here) ---------- */
 const SVG = (vb, body) => `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${body}</svg>`;
@@ -640,7 +647,7 @@ function statusHTML() {
 }
 
 /* ---------- routing ---------- */
-const VIEWS = ["fri", "sat", "sun", "places", "us", "songs", "notes", "letter"];
+const VIEWS = ["fri", "sat", "sun", "places", "notes", "letter", "songs", "two"];
 function defaultView() {
   if (letterOpen()) return "letter";
   const d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
@@ -649,7 +656,7 @@ function defaultView() {
 }
 function currentView() {
   const h = location.hash.replace("#", "");
-  return (VIEWS.includes(h) && (h !== "letter" || letterOpen()) && (h !== "songs" || songsOpen())) ? h : defaultView();
+  return (VIEWS.includes(h) && (h !== "letter" || letterOpen()) && (h !== "songs" || songsOpen()) && (h !== "two" || canSeeTwo())) ? h : defaultView();
 }
 const writerKey = () => { const m = location.hash.match(/^#write-([A-Za-z0-9]{12,})$/); return m ? m[1] : null; };
 
@@ -899,7 +906,20 @@ async function decryptPhoto(file, keyB64) {
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
   return URL.createObjectURL(new Blob([plain], { type: "image/webp" }));
 }
+let keyTried = 0;
+function loadPhotoKey() {
+  if (photoKey || !canSeeTwo() || Date.now() - keyTried < 20000) return;
+  keyTried = Date.now();
+  const ek = editorKey();
+  const ref = twoOpen() ? doc(db, "two", "key") : doc(db, "drafts", ek);
+  getDoc(ref).then(sn => {
+    const k = sn.exists() ? sn.data().pk : null;
+    if (k) { photoKey = k; hydratePhotos(); }
+    else if (twoOpen() && ek) getDoc(doc(db, "drafts", ek)).then(d => { if (d.exists() && d.data().pk) { photoKey = d.data().pk; hydratePhotos(); } }).catch(() => {});
+  }).catch(() => { if (twoOpen() && ek) { keyTried = 0; getDoc(doc(db, "drafts", ek)).then(d => { if (d.exists() && d.data().pk) { photoKey = d.data().pk; hydratePhotos(); } }).catch(() => {}); } });
+}
 function hydratePhotos() {
+  if (!photoKey) loadPhotoKey();
   root.querySelectorAll("img[data-ph]").forEach(img => {
     const id = img.dataset.ph;
     if (phUrl[id]) { if (img.getAttribute("src") !== phUrl[id]) img.src = phUrl[id]; img.classList.add("ready"); return; }
@@ -932,12 +952,13 @@ function usView() {
     const doodle = i === 2 || i === 6 || i === 9 ? `<span class="sb-doodle d${i % 3}" aria-hidden="true">${HEART_SVG}</span>` : "";
     return `<div class="sb sb-${kind}">${inner}${doodle}</div>`;
   }).join("");
-  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("So far", "Cho đến giờ")}</span><h2>${L("Us", "Tụi mình")}</h2></div>` +
+  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("So far", "Cho đến giờ")}</span><h2>${L("Two", "Đôi ta")}</h2></div>` +
+    (twoOpen() ? "" : `<p class="fine two-preview">${L("Only you can see this until 5 December.", "Chỉ anh thấy được trang này cho đến ngày 5 tháng 12.")}</p>`) +
     `<p class="hint">${L("A few of our moments so far. Write on any of them.", "Vài khoảnh khắc của tụi mình cho đến giờ. Viết lên tấm nào cũng được nhé.")}</p>` +
     `<div class="scrapbook">${rows}</div></section>`;
 }
 function frontPicsHTML() {
-  return `<a class="front-pics" href="#us" aria-label="${L("Photos of us", "Ảnh của tụi mình")}">` +
+  return `<a class="front-pics" href="#two" aria-label="${L("Photos of us", "Ảnh của tụi mình")}">` +
     PH_FRONT.map((n, i) => { const [id, w, h] = PH[n]; return `<span class="fp" style="--r:${[-8, 3, 10][i]}deg">${phImg(id, w, h)}</span>`; }).join("") + "</a>";
 }
 
@@ -958,16 +979,16 @@ function renderWriter(key) {
     '<div class="dates">Heather can\'t read this until Sunday 6 December, 6:30 pm. It saves as you type.</div></header>' +
     '<div class="status" id="wstatus" role="status">Loading…</div>' +
     '<div class="paper letter"><textarea id="letter-text" class="lined" aria-label="Your letter" placeholder="Dear Heather," style="min-height:420px"></textarea></div>' +
-    '<p class="fine"><a href="#fri" style="color:var(--accent-ink)">Back to the planner</a></p></div>';
+    '<p class="fine"><a href="#fri" style="color:var(--accent-ink)">Back to the planner</a> · <a href="#two" style="color:var(--accent-ink)">See “Two”</a></p></div>';
   const t = document.getElementById("letter-text"), st = document.getElementById("wstatus");
   const draftRef = doc(db, "drafts", key);
-  getDoc(draftRef).then(s => { t.value = s.exists() ? (s.data().text || "") : ""; writerLoaded = true; st.textContent = "Ready. Saves as you type."; grow(t); },
+  getDoc(draftRef).then(s => { t.value = s.exists() ? (s.data().text || "") : ""; writerLoaded = true; try { localStorage.setItem("editor", key); } catch (e) {} st.textContent = "Ready. Saves as you type."; grow(t); },
     () => { st.textContent = "This writing link isn't valid."; t.disabled = true; });
   t.addEventListener("input", () => {
     grow(t); if (!writerLoaded) return;
     st.textContent = "Saving…"; clearTimeout(writerTimer);
     writerTimer = setTimeout(() => {
-      Promise.all([setDoc(draftRef, { text: t.value }), setDoc(doc(db, "letter", "goodbye"), { text: t.value, key }, { merge: true })])
+      Promise.all([setDoc(draftRef, { text: t.value }, { merge: true }), setDoc(doc(db, "letter", "goodbye"), { text: t.value, key }, { merge: true })])
         .then(() => { st.textContent = "Saved. Locked until Sunday 6:30 pm."; }, () => { st.textContent = "Couldn't save. Check your connection."; });
     }, 800);
   });
@@ -1001,12 +1022,13 @@ function render() {
   const v = currentView();
   const tabs = state.days.map(d => `<a class="tab" href="#${d.id}"${v === d.id ? ' aria-current="page"' : ""}>${esc(dayShort(d))}</a>`).join("") +
     `<a class="tab" href="#places"${v === "places" ? ' aria-current="page"' : ""}>${L("Places", "Địa điểm")}</a>` +
-    `<a class="tab" href="#us"${v === "us" ? ' aria-current="page"' : ""}>${L("Us", "Tụi mình")}</a>` +
+    `<a class="tab" href="#notes"${v === "notes" ? ' aria-current="page"' : ""}>${L("To-do &amp; notes", "Việc cần làm &amp; ghi chú")}</a>` +
+    (letterOpen() ? `<a class="tab" href="#letter"${v === "letter" ? ' aria-current="page"' : ""}>${L("A letter ♡", "Lá thư ♡")}</a>` : "") +
     (songsOpen() ? `<a class="tab" href="#songs"${v === "songs" ? ' aria-current="page"' : ""}>${L("Songs", "Bài hát")}</a>`
       : `<span class="tab tab-locked" aria-disabled="true" title="${L("Opens on 4 December", "Mở vào ngày 4 tháng 12")}">${TAB_LOCK}${L("Songs", "Bài hát")}<small>${L("4 Dec", "4/12")}</small></span>`) +
-    `<a class="tab" href="#notes"${v === "notes" ? ' aria-current="page"' : ""}>${L("To-do &amp; notes", "Việc cần làm &amp; ghi chú")}</a>` +
-    (letterOpen() ? `<a class="tab" href="#letter"${v === "letter" ? ' aria-current="page"' : ""}>${L("A letter ♡", "Lá thư ♡")}</a>` : "");
-  const body = v === "letter" ? letterView() : v === "us" ? usView() : v === "songs" ? songsView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
+    (canSeeTwo() ? `<a class="tab" href="#two"${v === "two" ? ' aria-current="page"' : ""}>${twoOpen() ? "" : TAB_LOCK}${L("Two", "Đôi ta")}</a>`
+      : `<span class="tab tab-locked" aria-disabled="true" title="${L("Opens on 5 December", "Mở vào ngày 5 tháng 12")}">${TAB_LOCK}${L("Two", "Đôi ta")}<small>${L("5 Dec", "5/12")}</small></span>`);
+  const body = v === "letter" ? letterView() : v === "two" ? usView() : v === "songs" ? songsView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
   const langSwitch = `<div class="lang" role="group" aria-label="Language / Ngôn ngữ">` +
     `<button type="button" data-act="lang" data-lang="en" aria-pressed="${lang === "en"}" lang="en">EN</button>` +
     `<button type="button" data-act="lang" data-lang="vi" aria-pressed="${lang === "vi"}" lang="vi">VI</button></div>`;
@@ -1016,7 +1038,7 @@ function render() {
     `<div class="swatches" role="group" aria-label="${L("Colour theme", "Màu giao diện")}">` +
     THEMES.map(t => { const nm = lang === "vi" ? THEME_VI[t.id] : t.name; return `<button type="button" class="sw" style="background:linear-gradient(135deg,${t.sw[0]} 50%,${t.sw[1]} 50%)" data-act="theme" data-theme="${t.id}" aria-pressed="${TH.id === t.id}" aria-label="${esc(nm)}" title="${esc(nm)}"></button>`; }).join("") + '</div></div></div>' +
     `<h1>Beloved Strangers</h1><div class="dates">${L("Fri 4 – Sun 6 December 2026 · Kuala Lumpur", "Thứ Sáu 4 – Chủ Nhật 6 tháng 12, 2026 · Kuala Lumpur")}</div>` +
-    `<div id="cd">${countdownHTML()}</div>` + frontPicsHTML() + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
+    `<div id="cd">${countdownHTML()}</div>` + (canSeeTwo() ? frontPicsHTML() : "") + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
     `<nav class="tabs" aria-label="${L("Sections", "Các mục")}"><div class="tabrow">${tabs}</div>${statusHTML()}</nav>` +
     body + letterCardHTML(v) + (TH.divider ? `<div class="motif-row">${TH.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + '<footer lang="vi">Một trăm năm liệu có đủ để yêu em?</footer></div>';
   root.querySelectorAll("textarea").forEach(grow);
@@ -1096,10 +1118,11 @@ root.addEventListener("submit", e => {
   render();
 });
 window.addEventListener("hashchange", () => { openMenu = null; render(); window.scrollTo(0, 0); });
-let wasOpen = letterOpen(), wasSongs = songsOpen();
+let wasOpen = letterOpen(), wasSongs = songsOpen(), wasTwo = twoOpen();
 setInterval(() => {
   const el = document.getElementById("cd"); if (el) el.innerHTML = countdownHTML();
   if (!wasSongs && songsOpen()) { wasSongs = true; render(); }
+  if (!wasTwo && twoOpen()) { wasTwo = true; photoKey = null; keyTried = 0; render(); }
   if (!wasOpen && letterOpen()) { wasOpen = true; if (location.hash === "#letter") render(); else location.hash = "letter"; }
 }, 30000);
 
@@ -1125,8 +1148,7 @@ onSnapshot(tripRef, { includeMetadataChanges: false }, snap => {
   const data = snap.data(), remoteTr = data.tr || {};
   Object.keys(remoteTr).forEach(k => { trCache[k] = Object.assign({}, remoteTr[k], trCache[k]); });
   const next = applyPending(fromDoc(data));
-  photoKey = data.pk || null;
-  const json = JSON.stringify(next) + "|" + JSON.stringify(remoteTr).length + "|" + (photoKey || "");
+  const json = JSON.stringify(next) + "|" + JSON.stringify(remoteTr).length;
   if (status === "connecting") status = "saved";
   if (json === lastJSON && state) return;
   lastJSON = json; state = next;
