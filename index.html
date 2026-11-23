@@ -340,13 +340,21 @@ figure.print{margin-bottom:22px}
 .sb-doodle.d1{left:-4px; bottom:-24px; transform:rotate(-12deg) scale(.85)}
 .sb-doodle.d2{left:46%; bottom:-30px; transform:rotate(6deg) scale(.7)}
 @media (min-width:640px){ .scrapbook{gap:40px} .sb-w{padding:0 12%} }
-/* three peeking on the front page */
-.front-pics{display:flex; justify-content:center; padding:14px 0 4px; text-decoration:none}
-.front-pics .fp{width:92px; background:#fffdf8; padding:5px 5px 14px; transform:rotate(var(--r)); margin:0 -9px;
-  box-shadow:0 1px 2px rgba(40,25,20,.14), 0 8px 16px -8px rgba(40,25,20,.35); border-radius:2px; transition:transform .25s ease}
-.front-pics .fp:nth-child(2){z-index:1; margin-top:-6px}
-.front-pics .fp img{aspect-ratio:3/4; object-fit:cover}
-.front-pics:active .fp{transform:rotate(0deg) translateY(-2px)}
+/* one photo on the front page, tap to shuffle */
+.front-pic{display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 0 2px}
+.front-pic .fp{display:inline-flex; flex-direction:column; align-items:center; border:none; background:#fffdf8; padding:6px 6px 0; border-radius:2px; cursor:pointer;
+  transform:rotate(var(--r)); box-shadow:0 1px 2px rgba(40,25,20,.14), 0 10px 20px -10px rgba(40,25,20,.4); transition:transform .25s ease; -webkit-tap-highlight-color:transparent}
+.front-pic .fp img{height:176px; width:auto; max-width:min(250px, 72vw); object-fit:cover}
+.front-pic .fp-cap{font-family:var(--hand); font-size:16px; line-height:1.2; color:#3a2a26; padding:5px 4px 7px; max-width:180px; min-height:28px}
+.front-pic .fp:active{transform:rotate(0deg) scale(.97)}
+.front-pic .fp.pop{animation:fpPop .42s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes fpPop{0%{transform:rotate(calc(var(--r) - 9deg)) translateY(10px) scale(.9); opacity:.3} 100%{transform:rotate(var(--r)); opacity:1}}
+.fp-hint{font-family:var(--hand); font-size:15px; color:var(--muted)}
+.fp-locked{width:116px; height:150px; display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:not-allowed;
+  border:1.5px dashed var(--line) !important; background:transparent !important; box-shadow:none !important; opacity:.6; filter:grayscale(1); transform:rotate(-4deg); color:var(--muted)}
+.fp-locked svg{width:20px; height:20px}
+.fp-locked small{font-size:12px}
+@media (prefers-reduced-motion: reduce){ .front-pic .fp.pop{animation:none} }
 /* the photo in the letter */
 .letter-pola{width:62%; margin:6px auto 22px !important; display:block}
 figure.print.strip .tag{left:-6%; right:-6%}
@@ -914,7 +922,7 @@ function loadPhotoKey() {
   const ref = twoOpen() ? doc(db, "two", "key") : doc(db, "drafts", ek);
   getDoc(ref).then(sn => {
     const k = sn.exists() ? sn.data().pk : null;
-    if (k) { photoKey = k; hydratePhotos(); }
+    if (k) { photoKey = k; hydratePhotos(); if (frontPick != null) { frontNext = pickFront(frontPick); preloadPhoto(frontNext); } }
     else if (twoOpen() && ek) getDoc(doc(db, "drafts", ek)).then(d => { if (d.exists() && d.data().pk) { photoKey = d.data().pk; hydratePhotos(); } }).catch(() => {});
   }).catch(() => { if (twoOpen() && ek) { keyTried = 0; getDoc(doc(db, "drafts", ek)).then(d => { if (d.exists() && d.data().pk) { photoKey = d.data().pk; hydratePhotos(); } }).catch(() => {}); } });
 }
@@ -957,9 +965,30 @@ function usView() {
     `<p class="hint">${L("A few of our moments so far. Write on any of them.", "Vài khoảnh khắc của tụi mình cho đến giờ. Viết lên tấm nào cũng được nhé.")}</p>` +
     `<div class="scrapbook">${rows}</div></section>`;
 }
-function frontPicsHTML() {
-  return `<a class="front-pics" href="#two" aria-label="${L("Photos of us", "Ảnh của tụi mình")}">` +
-    PH_FRONT.map((n, i) => { const [id, w, h] = PH[n]; return `<span class="fp" style="--r:${[-8, 3, 10][i]}deg">${phImg(id, w, h)}</span>`; }).join("") + "</a>";
+// One photo on the front page; tapping it shuffles to another at random
+const PH_ALL = Object.keys(PH).map(Number);
+let frontPick = null, frontNext = null, frontTilt = -4;
+function pickFront(not) { let n; do { n = PH_ALL[Math.floor(Math.random() * PH_ALL.length)]; } while ((n === not || n === frontPick) && PH_ALL.length > 2); return n; }
+function preloadPhoto(n) {
+  const id = PH[n][0];
+  if (!photoKey || phUrl[id] || phBusy[id]) return;
+  phBusy[id] = decryptPhoto(id, photoKey).then(u => { phUrl[id] = u; }).catch(() => { delete phBusy[id]; });
+}
+function frontPicsHTML(pop) {
+  if (!canSeeTwo()) return `<div class="front-pic"><span class="fp fp-locked" aria-disabled="true" title="${L("Opens on 5 December", "Mở vào ngày 5 tháng 12")}">${TAB_LOCK}<small>${L("5 Dec", "5/12")}</small></span></div>`;
+  if (frontPick == null) frontPick = pickFront();
+  const [id, w, h] = PH[frontPick], cap = ((state.photos || {})[id] || {}).cap || "";
+  return `<div class="front-pic"><button type="button" class="fp${pop ? " pop" : ""}" data-act="shuffle" style="--r:${frontTilt}deg" aria-label="${L("Show another photo of us", "Xem một tấm ảnh khác")}">` +
+    `${phImg(id, w, h)}<span class="fp-cap">${cap ? esc(T(cap)) : "&nbsp;"}</span></button>` +
+    `<span class="fp-hint">${L("tap for another ♡", "chạm để xem tấm khác ♡")}</span></div>`;
+}
+function shuffleFront() {
+  frontPick = frontNext != null ? frontNext : pickFront();
+  frontNext = pickFront(frontPick);
+  frontTilt = Math.round((Math.random() * 10 - 5) * 10) / 10 || 3;
+  const el = root.querySelector(".front-pic");
+  if (el) { el.outerHTML = frontPicsHTML(true); hydratePhotos(); }
+  preloadPhoto(frontNext);
 }
 
 function loadLetter() {
@@ -1038,7 +1067,7 @@ function render() {
     `<div class="swatches" role="group" aria-label="${L("Colour theme", "Màu giao diện")}">` +
     THEMES.map(t => { const nm = lang === "vi" ? THEME_VI[t.id] : t.name; return `<button type="button" class="sw" style="background:linear-gradient(135deg,${t.sw[0]} 50%,${t.sw[1]} 50%)" data-act="theme" data-theme="${t.id}" aria-pressed="${TH.id === t.id}" aria-label="${esc(nm)}" title="${esc(nm)}"></button>`; }).join("") + '</div></div></div>' +
     `<h1>Beloved Strangers</h1><div class="dates">${L("Fri 4 – Sun 6 December 2026 · Kuala Lumpur", "Thứ Sáu 4 – Chủ Nhật 6 tháng 12, 2026 · Kuala Lumpur")}</div>` +
-    `<div id="cd">${countdownHTML()}</div>` + (canSeeTwo() ? frontPicsHTML() : "") + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
+    `<div id="cd">${countdownHTML()}</div>` + frontPicsHTML() + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
     `<nav class="tabs" aria-label="${L("Sections", "Các mục")}"><div class="tabrow">${tabs}</div>${statusHTML()}</nav>` +
     body + letterCardHTML(v) + (TH.divider ? `<div class="motif-row">${TH.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + '<footer lang="vi">Một trăm năm liệu có đủ để yêu em?</footer></div>';
   root.querySelectorAll("textarea").forEach(grow);
@@ -1064,6 +1093,7 @@ root.addEventListener("click", e => {
   const t = e.target.closest("[data-act]"); if (!t || t.tagName === "INPUT" || !state) return;
   const a = t.dataset.act, id = t.dataset.id, d = t.dataset.day ? day(t.dataset.day) : null;
   if (a === "hearts") { heartBurst(t); return; }
+  if (a === "shuffle") { shuffleFront(); return; }
   if (a === "lang") { if (t.dataset.lang !== lang) setLang(t.dataset.lang); return; }
   if (a === "letterorig") { letterOriginal = !letterOriginal; render(); return; }
   if (a === "filter") { filter = t.dataset.cat; render(); return; }
