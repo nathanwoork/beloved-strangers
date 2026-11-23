@@ -397,6 +397,19 @@ input.scard-artist:focus{outline:none; box-shadow:inset 0 -1px 0 var(--accent)}
 .scard-note:focus{outline:none; background:rgba(255,255,255,.03)}
 :root[lang="vi"] .scard-note{font-size:17px}
 
+/* Quote bubble under the letter card */
+.quote{position:relative; display:block; width:100%; text-align:left; margin:16px 0 6px; padding:16px 18px 12px 46px; cursor:pointer;
+  background:var(--card); border:1px solid var(--line); border-radius:18px; color:var(--ink); box-shadow:0 10px 22px -16px rgba(40,25,20,.45); -webkit-tap-highlight-color:transparent}
+.quote::before{content:""; position:absolute; top:-8px; left:34px; width:14px; height:14px; background:var(--card); border-left:1px solid var(--line); border-top:1px solid var(--line); transform:rotate(45deg)}
+.q-mark{position:absolute; left:14px; top:4px; font-family:"Fraunces", Georgia, serif; font-size:46px; line-height:1; color:var(--accent)}
+.q-text{display:block; color:var(--ink); font-family:"Fraunces", Georgia, serif; font-style:italic; font-size:17px; line-height:1.45}
+.q-hint{display:block; margin-top:8px; text-align:right; font-family:var(--hand); font-size:15px; color:var(--muted)}
+.quote:active{transform:scale(.99)}
+.quote.swap .q-text{animation:qIn .4s ease}
+@keyframes qIn{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion: reduce){ .quote.swap .q-text{animation:none} }
+:root[lang="vi"] .q-text{font-family:"Be Vietnam Pro", system-ui, sans-serif; font-style:normal; font-size:16px}
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -1039,6 +1052,27 @@ function shuffleFront() {
   preloadPhoto(frontNext);
 }
 
+/* ---------- quote bubble under the letter: shuffled, no repeats until every quote has been shown ---------- */
+const QUOTES = [ "Better to do wrong in loving than never love for fear of doing wrong.", "You don't truly love a person until they have hurt you and you still think of them as the greatest person in the world, love is the most violent act.", "If we ever fall in love again, let's never tell the world.", "There are two hearts on the floor, one is mine, both are yours.", "You were all the candles I blew out as a little boy btw.", "You won't find the same person twice, not even in the same person.", "Never let 'I already have her' be an excuse to stop pursuing her.", "Sometimes love isn't gone. Sometimes you're just going through a season where it's harder to feel.", "The old man buying flowers who said, “No, she just had a really bad day yesterday.”", "You may be far away by distance but they always hold you close in their heart.", "I know when it is love because I have loved without ever receiving it.", "When your head gets mean to you, come stay in mine a while…", "What a privilege it is to have a love so strong that doing long distance isn't even a question.", "Sometimes I hate how far away you are but I'd rather miss you from a distance than never have found you at all.", "Maybe home really is a person. Because the flight to you feels like going home, and the flight back feels like leaving it.", "You are worth the wait btw. Worth the long distance. Worth the quiet days. I will always WAIT.", "I would rather do a few years of long distance and be able to spend the rest of our lives together than give up on the best relationship I'll ever have because it's 'too difficult.'", "And for my final act of love, I'll wait for you cause I truly want it to be you. I just hope you don't forget I'm waiting.", "I don't hate you for choosing yourself. I hate that I became the thing you had to choose against…", "I thought losing you meant missing the memories we already had. I didn't realize I'd miss all the memories we were supposed to make too.", "The old version of us would be so sad to see us now.", "If you don't clear your misunderstandings in time, they become the reason for distance forever.", "Sometimes you mix the past with the present and your happiness disappears.", "The cruelest dilemma in life is deciding whether to endure an unknown amount of suffering for the possibility of something beautiful, or to abandon the hope of what could be before it costs you what remains of who you are.", "A man who waits for the perfect shot will die with a full mag.", "The trouble is, we think we have time.", "Never underestimate someone with a promise they refuse to break.", "Hope against hope. Believe against the odds.", "If you knew the ending, it wouldn't be worth watching. Your life is a movie.", "You wouldn't believe the kind of person I could become if you wanted it.", "Thank you for being in my life." ];
+const qGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+const qSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+let qCur = qGet("qcur", null), qBag = qGet("qbag", []);
+function nextQuote() {
+  qBag = (Array.isArray(qBag) ? qBag : []).filter(i => Number.isInteger(i) && i >= 0 && i < QUOTES.length);
+  if (!qBag.length) qBag = QUOTES.map((_, i) => i);                 // new round: every quote again
+  const choices = qBag.length > 1 ? qBag.filter(i => i !== qCur) : qBag;   // never the same one twice in a row
+  const pick = choices[Math.floor(Math.random() * choices.length)];
+  qBag = qBag.filter(i => i !== pick); qCur = pick;
+  qSet("qbag", qBag); qSet("qcur", qCur);
+  return pick;
+}
+function quoteHTML(swap) {
+  if (!Number.isInteger(qCur) || qCur < 0 || qCur >= QUOTES.length) nextQuote();
+  return `<button type="button" class="quote${swap ? " swap" : ""}" data-act="quote" aria-live="polite" aria-label="${L("Another quote", "Câu khác")}">` +
+    `<span class="q-mark" aria-hidden="true">“</span><span class="q-text">${esc(T(QUOTES[qCur]))}</span>` +
+    `<span class="q-hint">${L("tap for another ♡", "chạm để xem câu khác ♡")}</span></button>`;
+}
+
 function loadLetter() {
   getDoc(doc(db, "letter", "goodbye")).then(s => {
     const d = s.exists() ? s.data() : {};
@@ -1117,7 +1151,7 @@ function render() {
     `<h1>Beloved Strangers</h1><div class="dates">${L("Fri 4 – Sun 6 December 2026 · Kuala Lumpur", "Thứ Sáu 4 – Chủ Nhật 6 tháng 12, 2026 · Kuala Lumpur")}</div>` +
     `<div id="cd">${countdownHTML()}</div>` + (songsOpen() ? frontPicsHTML() : "") + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
     `<nav class="tabs" aria-label="${L("Sections", "Các mục")}"><div class="tabrow">${tabs}</div>${statusHTML()}</nav>` +
-    body + letterCardHTML(v) + (TH.divider ? `<div class="motif-row">${TH.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + `<footer lang="vi">${v === "letter" ? "Một trăm năm đã trôi qua, trong khoảng thời gian 2 năm." : "Một trăm năm liệu có đủ để yêu em?"}</footer></div>`;
+    body + letterCardHTML(v) + quoteHTML() + (TH.divider ? `<div class="motif-row">${TH.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + `<footer lang="vi">${v === "letter" ? "Một trăm năm đã trôi qua, trong khoảng thời gian 2 năm." : "Một trăm năm liệu có đủ để yêu em?"}</footer></div>`;
   root.querySelectorAll("textarea").forEach(grow);
   restoreUI(ui);
   hydratePhotos();
@@ -1142,6 +1176,7 @@ root.addEventListener("click", e => {
   const a = t.dataset.act, id = t.dataset.id, d = t.dataset.day ? day(t.dataset.day) : null;
   if (a === "hearts") { heartBurst(t); return; }
   if (a === "shuffle") { shuffleFront(); return; }
+  if (a === "quote") { nextQuote(); t.outerHTML = quoteHTML(true); return; }
   if (a === "songmenu") { openSong = openSong === id ? null : id; render(); return; }
   if (a === "lang") { if (t.dataset.lang !== lang) setLang(t.dataset.lang); return; }
   if (a === "letterorig") { letterOriginal = !letterOriginal; render(); return; }
