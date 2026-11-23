@@ -1069,9 +1069,9 @@ function render() {
     `<div class="swatches" role="group" aria-label="${L("Colour theme", "Màu giao diện")}">` +
     THEMES.map(t => { const nm = lang === "vi" ? THEME_VI[t.id] : t.name; return `<button type="button" class="sw" style="background:linear-gradient(135deg,${t.sw[0]} 50%,${t.sw[1]} 50%)" data-act="theme" data-theme="${t.id}" aria-pressed="${TH.id === t.id}" aria-label="${esc(nm)}" title="${esc(nm)}"></button>`; }).join("") + '</div></div></div>' +
     `<h1>Beloved Strangers</h1><div class="dates">${L("Fri 4 – Sun 6 December 2026 · Kuala Lumpur", "Thứ Sáu 4 – Chủ Nhật 6 tháng 12, 2026 · Kuala Lumpur")}</div>` +
-    `<div id="cd">${countdownHTML()}</div>` + frontPicsHTML() + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
+    `<div id="cd">${countdownHTML()}</div>` + (songsOpen() ? frontPicsHTML() : "") + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
     `<nav class="tabs" aria-label="${L("Sections", "Các mục")}"><div class="tabrow">${tabs}</div>${statusHTML()}</nav>` +
-    body + letterCardHTML(v) + (TH.divider ? `<div class="motif-row">${TH.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + '<footer lang="vi">Một trăm năm liệu có đủ để yêu em?</footer></div>';
+    body + letterCardHTML(v) + (TH.divider ? `<div class="motif-row">${TH.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + `<footer lang="vi">${v === "letter" ? "Một trăm năm đã trôi qua, trong khoảng thời gian 2 năm." : "Một trăm năm liệu có đủ để yêu em?"}</footer></div>`;
   root.querySelectorAll("textarea").forEach(grow);
   restoreUI(ui);
   hydratePhotos();
