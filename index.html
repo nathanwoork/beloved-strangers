@@ -305,6 +305,53 @@ button.motif-head svg{transition:transform .15s}
 :root[lang="vi"] .cat{font-size:21px}
 :root[lang="vi"] .empty{font-size:20px}
 
+/* ---------- Photos of us: scrapbook ---------- */
+img.ph{display:block; width:100%; height:auto; background:color-mix(in srgb, var(--line) 55%, transparent); opacity:0; transition:opacity .5s ease}
+img.ph.ready{opacity:1}
+.scrapbook{display:flex; flex-direction:column; gap:30px; padding:10px 2px 26px}
+.sb{position:relative; display:grid; gap:16px; align-items:start}
+.sb-p{grid-template-columns:1fr 1fr}
+.sb-p > :nth-child(2){margin-top:26px}
+.sb-s{grid-template-columns:.58fr 1fr; align-items:center}
+.sb-w{padding:0 6px}
+.sb-ww{grid-template-columns:1fr 1fr; gap:0}
+.sb-ww > :first-child{margin-right:-14px; z-index:1}
+.sb-ww > :nth-child(2){margin-top:40px}
+figure.pola, figure.print{margin:0; position:relative; transform:rotate(var(--r,0deg)); transition:transform .3s ease}
+figure.pola{background:#fffdf8; padding:8px 8px 4px; box-shadow:0 1px 2px rgba(40,25,20,.12), 0 8px 20px -8px rgba(40,25,20,.28); border-radius:2px}
+figure.print{background:#fffdf8; padding:6px; box-shadow:0 1px 2px rgba(40,25,20,.12), 0 10px 24px -10px rgba(40,25,20,.32)}
+figure.print.strip{background:#141010; padding:5px}
+figure.pola:focus-within, figure.print:focus-within{transform:rotate(0deg); z-index:3}
+.tape{position:absolute; top:-11px; left:50%; width:78px; height:22px; transform:translateX(-50%) rotate(-3deg); z-index:2;
+  background:repeating-linear-gradient(45deg, color-mix(in srgb, var(--accent) 38%, transparent) 0 6px, color-mix(in srgb, var(--accent) 22%, transparent) 6px 12px);
+  opacity:.85; border-left:1px dashed rgba(255,255,255,.5); border-right:1px dashed rgba(255,255,255,.5)}
+figure.strip .tape{width:56px}
+.ph-cap{display:block; width:100%; border:none; background:transparent; resize:none; overflow:hidden; text-align:center;
+  font-family:var(--hand); font-size:17px; line-height:1.25; color:#3a2a26; padding:8px 2px 6px; min-height:36px}
+.ph-cap::placeholder{color:#b4a49c}
+.ph-cap:focus{outline:none; background:rgba(0,0,0,.03)}
+figure.print .tag{position:absolute; left:10%; right:10%; bottom:-26px; transform:rotate(calc(var(--r,0deg) * -1.4)); background:#fffdf8;
+  box-shadow:0 4px 10px -6px rgba(40,25,20,.4); padding:0 6px; z-index:2}
+figure.print .tag .ph-cap{padding:4px 2px; min-height:30px; font-size:16px}
+figure.print{margin-bottom:22px}
+.sb-doodle{position:absolute; width:22px; height:22px; color:var(--accent); opacity:.75}
+.sb-doodle svg{width:22px; height:22px; fill:currentColor}
+.sb-doodle.d0{right:-2px; bottom:-26px; transform:rotate(14deg)}
+.sb-doodle.d1{left:-4px; bottom:-24px; transform:rotate(-12deg) scale(.85)}
+.sb-doodle.d2{left:46%; bottom:-30px; transform:rotate(6deg) scale(.7)}
+@media (min-width:640px){ .scrapbook{gap:40px} .sb-w{padding:0 12%} }
+/* three peeking on the front page */
+.front-pics{display:flex; justify-content:center; padding:14px 0 4px; text-decoration:none}
+.front-pics .fp{width:92px; background:#fffdf8; padding:5px 5px 14px; transform:rotate(var(--r)); margin:0 -9px;
+  box-shadow:0 1px 2px rgba(40,25,20,.14), 0 8px 16px -8px rgba(40,25,20,.35); border-radius:2px; transition:transform .25s ease}
+.front-pics .fp:nth-child(2){z-index:1; margin-top:-6px}
+.front-pics .fp img{aspect-ratio:3/4; object-fit:cover}
+.front-pics:active .fp{transform:rotate(0deg) translateY(-2px)}
+/* the photo in the letter */
+.letter-pola{width:62%; margin:6px auto 22px !important; display:block}
+figure.print.strip .tag{left:-6%; right:-6%}
+figure.print.strip .tag .ph-cap{font-size:15px}
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -524,7 +571,8 @@ function fromDoc(d) {
     places: sortMap(d.places),
     checks: sortMap(d.checks),
     songs: sortMap(d.songs),
-    playlist: d.playlist || null
+    playlist: d.playlist || null,
+    photos: d.photos || {}
   };
 }
 
@@ -537,6 +585,7 @@ function pathFor(bind) {
   if (p[0] === "check") return ["checks", p[1], "text"];
   if (p[0] === "song") return ["songs", p[1], p[2] || "note"];
   if (p[0] === "notes") return ["notes"];
+  if (p[0] === "photo") return ["photos", p[1], "cap"];
   return null;
 }
 function setLocal(bind, val) {
@@ -548,6 +597,7 @@ function setLocal(bind, val) {
   else if (p[0] === "check") { o = state.checks.find(x => x.id === p[1]); k = "text"; }
   else if (p[0] === "song") { o = state.songs.find(x => x.id === p[1]); k = p[2] || "note"; }
   else if (p[0] === "notes") { o = state; k = "notes"; }
+  else if (p[0] === "photo") { state.photos = state.photos || {}; o = state.photos[p[1]] = state.photos[p[1]] || {}; k = "cap"; }
   if (o) o[k] = val;
 }
 
@@ -590,7 +640,7 @@ function statusHTML() {
 }
 
 /* ---------- routing ---------- */
-const VIEWS = ["fri", "sat", "sun", "places", "songs", "notes", "letter"];
+const VIEWS = ["fri", "sat", "sun", "places", "us", "songs", "notes", "letter"];
 function defaultView() {
   if (letterOpen()) return "letter";
   const d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
@@ -824,17 +874,79 @@ function letterView() {
   let body, toggle = "";
   if (letterText === null && !letterErr) { loadLetter(); body = `<span class="hint">${L("Opening…", "Đang mở…")}</span>`; }
   else if (letterErr) body = `<span class="hint">${L("Almost. The letter opens at 6:30 pm. Refresh in a minute.", "Sắp rồi. Thư sẽ mở lúc 6:30 tối. Tải lại trang sau một phút nhé.")}</span>`;
-  else if (!letterText) body = `<span class="hint">${L("The letter will appear here.", "Lá thư sẽ xuất hiện ở đây.")}</span>`;
+  else if (!letterText) body = letterPhoto ? "" : `<span class="hint">${L("The letter will appear here.", "Lá thư sẽ xuất hiện ở đây.")}</span>`;
   else {
     const tr = T(letterText);
     body = esc(letterOriginal ? letterText : tr);
     if (tr !== letterText) toggle = `<p class="fine"><button type="button" class="linkbtn" data-act="letterorig">${letterOriginal ? L("See translation", "Xem bản dịch") : L("See original", "Xem bản gốc")}</button></p>`;
   }
   return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("Sunday, 6 December · after goodbye", "Chủ Nhật, 6 tháng 12 · sau lời tạm biệt")}</span><h2>${L("A letter", "Một lá thư")}</h2></div>` +
-    `<div class="paper letter"><div class="letter-body">${body}</div></div>${toggle}</section>`;
+    `<div class="paper letter">${letterPhoto && !letterErr ? `<figure class="pola letter-pola" style="--r:-2deg"><span class="tape" aria-hidden="true"></span>${phImg(letterPhoto.id, letterPhoto.w, letterPhoto.h, ' data-k="letter"')}</figure>` : ""}<div class="letter-body">${body}</div></div>${toggle}</section>`;
 }
+/* ---------- photos of us: encrypted files in the repo, key kept in the shared trip doc ---------- */
+const PH = { 2: ["3c5017b986", 1280, 960], 3: ["8952fd25ad", 960, 1280], 4: ["20ecbadd20", 1280, 960], 5: ["dce470ac7a", 960, 1280], 6: ["015ecea9d9", 960, 1280], 7: ["167f7022ed", 960, 1280], 8: ["d4de74b6b1", 860, 1280], 9: ["8571bc2f3a", 960, 1280], 10: ["3b2ba25b6d", 720, 1280], 11: ["275d5f2884", 720, 1280], 12: ["07b959524c", 600, 415], 13: ["25de3defd0", 426, 1280], 14: ["c824adafac", 1280, 960], 15: ["9e5e69906d", 960, 1280], 16: ["3ec3a8c451", 1280, 720], 17: ["42cbf23640", 720, 1280], 18: ["014560fbfd", 1280, 720], 19: ["46b914091b", 1280, 720], 20: ["707fbb1269", 720, 1280] };
+const PH_ROWS = [["w", 18], ["p", 6, 9], ["s", 13, 11], ["w", 12], ["p", 17, 20], ["w", 14], ["p", 15, 10], ["w", 16], ["p", 8, 7], ["w", 4], ["p", 3, 5], ["ww", 19, 2]];
+const PH_PRINT = new Set([8, 13]);          // the booth sheet and booth strip stay as prints, not polaroids
+const PH_FRONT = [6, 9, 20];
+let photoKey = null, letterPhoto = null;
+const phUrl = {}, phBusy = {};
+function b64bytes(s) { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+async function decryptPhoto(file, keyB64) {
+  const key = await crypto.subtle.importKey("raw", b64bytes(keyB64), "AES-GCM", false, ["decrypt"]);
+  const r = await fetch(new URL("photos/" + file + ".bin", location.href));
+  if (!r.ok) throw new Error("photo " + r.status);
+  const buf = new Uint8Array(await r.arrayBuffer());
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
+  return URL.createObjectURL(new Blob([plain], { type: "image/webp" }));
+}
+function hydratePhotos() {
+  root.querySelectorAll("img[data-ph]").forEach(img => {
+    const id = img.dataset.ph;
+    if (phUrl[id]) { if (img.getAttribute("src") !== phUrl[id]) img.src = phUrl[id]; img.classList.add("ready"); return; }
+    const k = img.dataset.k === "letter" ? (letterPhoto && letterPhoto.pk) : photoKey;
+    if (!k || phBusy[id]) return;
+    phBusy[id] = decryptPhoto(id, k).then(u => {
+      phUrl[id] = u;
+      root.querySelectorAll(`img[data-ph="${id}"]`).forEach(x => { x.src = u; x.classList.add("ready"); });
+    }).catch(() => { delete phBusy[id]; });
+  });
+}
+const phImg = (id, w, h, extra = "") => `<img class="ph" data-ph="${id}" width="${w}" height="${h}" alt="${L("A photo of us", "Ảnh của tụi mình")}"${extra}>`;
+function phCap(id) {
+  const bind = `photo|${id}|cap`, cap = ((state.photos || {})[id] || {}).cap || "";
+  return ta("ph-cap", bind, fv(bind, cap), L("write something…", "viết gì đó…"), L("Caption", "Chú thích"));
+}
+function phCard(n, r, cls = "") {
+  const [id, w, h] = PH[n];
+  if (PH_PRINT.has(n) || cls) return `<figure class="print ${cls}${PH_PRINT.has(n) && n === 13 ? " strip" : ""}" style="--r:${r}deg"><span class="tape" aria-hidden="true"></span>${phImg(id, w, h)}<div class="tag">${phCap(id)}</div></figure>`;
+  return `<figure class="pola" style="--r:${r}deg">${phImg(id, w, h)}${phCap(id)}</figure>`;
+}
+function usView() {
+  const rows = PH_ROWS.map((row, i) => {
+    const t = i % 2 ? 1 : -1, [kind, a, b] = row;
+    let inner;
+    if (kind === "w") inner = phCard(a, 1.2 * t, "wide");
+    else if (kind === "ww") inner = phCard(a, -2.4, "wide") + phCard(b, 2.2, "wide");
+    else if (kind === "s") inner = phCard(a, -1.6) + phCard(b, 2.4);
+    else inner = phCard(a, -2.6 * t) + phCard(b, 2 * t);
+    const doodle = i === 2 || i === 6 || i === 9 ? `<span class="sb-doodle d${i % 3}" aria-hidden="true">${HEART_SVG}</span>` : "";
+    return `<div class="sb sb-${kind}">${inner}${doodle}</div>`;
+  }).join("");
+  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("So far", "Cho đến giờ")}</span><h2>${L("Us", "Tụi mình")}</h2></div>` +
+    `<p class="hint">${L("A few of our moments so far. Write on any of them.", "Vài khoảnh khắc của tụi mình cho đến giờ. Viết lên tấm nào cũng được nhé.")}</p>` +
+    `<div class="scrapbook">${rows}</div></section>`;
+}
+function frontPicsHTML() {
+  return `<a class="front-pics" href="#us" aria-label="${L("Photos of us", "Ảnh của tụi mình")}">` +
+    PH_FRONT.map((n, i) => { const [id, w, h] = PH[n]; return `<span class="fp" style="--r:${[-8, 3, 10][i]}deg">${phImg(id, w, h)}</span>`; }).join("") + "</a>";
+}
+
 function loadLetter() {
-  getDoc(doc(db, "letter", "goodbye")).then(s => { letterText = s.exists() ? (s.data().text || "") : ""; letterErr = null; render(); },
+  getDoc(doc(db, "letter", "goodbye")).then(s => {
+    const d = s.exists() ? s.data() : {};
+    letterText = d.text || ""; letterPhoto = d.photo && d.pk ? { id: d.photo, pk: d.pk, w: d.pw || 960, h: d.ph || 1280 } : null;
+    letterErr = null; render();
+  },
     () => { letterErr = true; render(); setTimeout(() => { letterErr = null; if (currentView() === "letter") render(); }, 60000); });
 }
 
@@ -855,7 +967,7 @@ function renderWriter(key) {
     grow(t); if (!writerLoaded) return;
     st.textContent = "Saving…"; clearTimeout(writerTimer);
     writerTimer = setTimeout(() => {
-      Promise.all([setDoc(draftRef, { text: t.value }), setDoc(doc(db, "letter", "goodbye"), { text: t.value, key })])
+      Promise.all([setDoc(draftRef, { text: t.value }), setDoc(doc(db, "letter", "goodbye"), { text: t.value, key }, { merge: true })])
         .then(() => { st.textContent = "Saved. Locked until Sunday 6:30 pm."; }, () => { st.textContent = "Couldn't save. Check your connection."; });
     }, 800);
   });
@@ -889,11 +1001,12 @@ function render() {
   const v = currentView();
   const tabs = state.days.map(d => `<a class="tab" href="#${d.id}"${v === d.id ? ' aria-current="page"' : ""}>${esc(dayShort(d))}</a>`).join("") +
     `<a class="tab" href="#places"${v === "places" ? ' aria-current="page"' : ""}>${L("Places", "Địa điểm")}</a>` +
+    `<a class="tab" href="#us"${v === "us" ? ' aria-current="page"' : ""}>${L("Us", "Tụi mình")}</a>` +
     (songsOpen() ? `<a class="tab" href="#songs"${v === "songs" ? ' aria-current="page"' : ""}>${L("Songs", "Bài hát")}</a>`
       : `<span class="tab tab-locked" aria-disabled="true" title="${L("Opens on 4 December", "Mở vào ngày 4 tháng 12")}">${TAB_LOCK}${L("Songs", "Bài hát")}<small>${L("4 Dec", "4/12")}</small></span>`) +
     `<a class="tab" href="#notes"${v === "notes" ? ' aria-current="page"' : ""}>${L("To-do &amp; notes", "Việc cần làm &amp; ghi chú")}</a>` +
     (letterOpen() ? `<a class="tab" href="#letter"${v === "letter" ? ' aria-current="page"' : ""}>${L("A letter ♡", "Lá thư ♡")}</a>` : "");
-  const body = v === "letter" ? letterView() : v === "songs" ? songsView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
+  const body = v === "letter" ? letterView() : v === "us" ? usView() : v === "songs" ? songsView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
   const langSwitch = `<div class="lang" role="group" aria-label="Language / Ngôn ngữ">` +
     `<button type="button" data-act="lang" data-lang="en" aria-pressed="${lang === "en"}" lang="en">EN</button>` +
     `<button type="button" data-act="lang" data-lang="vi" aria-pressed="${lang === "vi"}" lang="vi">VI</button></div>`;
@@ -903,11 +1016,12 @@ function render() {
     `<div class="swatches" role="group" aria-label="${L("Colour theme", "Màu giao diện")}">` +
     THEMES.map(t => { const nm = lang === "vi" ? THEME_VI[t.id] : t.name; return `<button type="button" class="sw" style="background:linear-gradient(135deg,${t.sw[0]} 50%,${t.sw[1]} 50%)" data-act="theme" data-theme="${t.id}" aria-pressed="${TH.id === t.id}" aria-label="${esc(nm)}" title="${esc(nm)}"></button>`; }).join("") + '</div></div></div>' +
     `<h1>Beloved Strangers</h1><div class="dates">${L("Fri 4 – Sun 6 December 2026 · Kuala Lumpur", "Thứ Sáu 4 – Chủ Nhật 6 tháng 12, 2026 · Kuala Lumpur")}</div>` +
-    `<div id="cd">${countdownHTML()}</div>` + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
+    `<div id="cd">${countdownHTML()}</div>` + frontPicsHTML() + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
     `<nav class="tabs" aria-label="${L("Sections", "Các mục")}"><div class="tabrow">${tabs}</div>${statusHTML()}</nav>` +
     body + letterCardHTML(v) + (TH.divider ? `<div class="motif-row">${TH.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + '<footer lang="vi">Một trăm năm liệu có đủ để yêu em?</footer></div>';
   root.querySelectorAll("textarea").forEach(grow);
   restoreUI(ui);
+  hydratePhotos();
 }
 function grow(el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
 
@@ -1011,7 +1125,8 @@ onSnapshot(tripRef, { includeMetadataChanges: false }, snap => {
   const data = snap.data(), remoteTr = data.tr || {};
   Object.keys(remoteTr).forEach(k => { trCache[k] = Object.assign({}, remoteTr[k], trCache[k]); });
   const next = applyPending(fromDoc(data));
-  const json = JSON.stringify(next) + "|" + JSON.stringify(remoteTr).length;
+  photoKey = data.pk || null;
+  const json = JSON.stringify(next) + "|" + JSON.stringify(remoteTr).length + "|" + (photoKey || "");
   if (status === "connecting") status = "saved";
   if (json === lastJSON && state) return;
   lastJSON = json; state = next;
