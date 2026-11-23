@@ -462,6 +462,7 @@ const twoOpen = () => Date.now() >= TWO_AT;
 // Nathan's phone becomes the editor once he opens his private letter link on it
 const editorKey = () => { try { return localStorage.getItem("editor") || ""; } catch (e) { return ""; } };
 const canSeeTwo = () => twoOpen() || !!editorKey();
+const canSeeSongs = () => songsOpen() || !!editorKey();
 
 /* ---------- themes (palettes live in CSS; drawings live here) ---------- */
 const SVG = (vb, body) => `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${body}</svg>`;
@@ -664,7 +665,7 @@ function defaultView() {
 }
 function currentView() {
   const h = location.hash.replace("#", "");
-  return (VIEWS.includes(h) && (h !== "letter" || letterOpen()) && (h !== "songs" || songsOpen()) && (h !== "two" || canSeeTwo())) ? h : defaultView();
+  return (VIEWS.includes(h) && (h !== "letter" || letterOpen()) && (h !== "songs" || canSeeSongs()) && (h !== "two" || canSeeTwo())) ? h : defaultView();
 }
 const writerKey = () => { const m = location.hash.match(/^#write-([A-Za-z0-9]{12,})$/); return m ? m[1] : null; };
 
@@ -858,7 +859,8 @@ function songsView() {
       `<button type="button" class="x tile-x" data-act="delsong" data-id="${sg.id}" aria-label="${L("Remove ", "Xoá ")}${esc(sg.title)}">×</button>` +
       `</article>`;
   }).join("");
-  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("For the drive and the late nights", "Cho những chuyến xe và những đêm khuya")}</span><h2>${L("Our songs", "Những bài hát của tụi mình")}</h2></div>` + head +
+  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("For the drive and the late nights", "Cho những chuyến xe và những đêm khuya")}</span><h2>${L("Our songs", "Những bài hát của tụi mình")}</h2></div>` +
+    (songsOpen() ? "" : `<p class="fine two-preview">${L("Only you can see this until 4 December.", "Chỉ anh thấy được trang này cho đến ngày 4 tháng 12.")}</p>`) + head +
     (state.songs.length ? `<div class="gallery">${tiles}</div>` : `<p class="empty">${L("No songs yet. Add the first one ♡", "Chưa có bài nào. Thêm bài đầu tiên nhé ♡")}</p>`) +
     `<form class="addrow songadd" data-form="song"><input id="song-url" name="url" type="text" inputmode="url" autocomplete="off" placeholder="${L("Add a song: paste a Spotify link", "Thêm bài hát: dán link Spotify")}" aria-label="${L("Spotify link", "Link Spotify")}"><button class="cta" type="submit"` + (songBusy ? " disabled" : "") + '>' + (songBusy ? L("Adding…", "Đang thêm…") : L("Add", "Thêm")) + '</button></form>' +
     (songMsg ? `<p class="fine songmsg" role="alert">${songMsg}</p>` : `<p class="fine">${L("Tap a cover to open the song in Spotify. In Spotify, Share → Copy link gives you a link to paste here.", "Chạm vào ảnh bìa để mở bài hát trong Spotify. Trong Spotify, chọn Chia sẻ → Sao chép liên kết để lấy link dán vào đây.")}</p>`) +
@@ -1053,7 +1055,7 @@ function render() {
     `<a class="tab" href="#places"${v === "places" ? ' aria-current="page"' : ""}>${L("Places", "Địa điểm")}</a>` +
     `<a class="tab" href="#notes"${v === "notes" ? ' aria-current="page"' : ""}>${L("To-do &amp; notes", "Việc cần làm &amp; ghi chú")}</a>` +
     (letterOpen() ? `<a class="tab" href="#letter"${v === "letter" ? ' aria-current="page"' : ""}>${L("A letter ♡", "Lá thư ♡")}</a>` : "") +
-    (songsOpen() ? `<a class="tab" href="#songs"${v === "songs" ? ' aria-current="page"' : ""}>${L("Songs", "Bài hát")}</a>`
+    (canSeeSongs() ? `<a class="tab" href="#songs"${v === "songs" ? ' aria-current="page"' : ""}>${songsOpen() ? "" : TAB_LOCK}${L("Songs", "Bài hát")}</a>`
       : `<span class="tab tab-locked" aria-disabled="true" title="${L("Opens on 4 December", "Mở vào ngày 4 tháng 12")}">${TAB_LOCK}${L("Songs", "Bài hát")}<small>${L("4 Dec", "4/12")}</small></span>`) +
     (canSeeTwo() ? `<a class="tab" href="#two"${v === "two" ? ' aria-current="page"' : ""}>${twoOpen() ? "" : TAB_LOCK}${L("Two", "Đôi ta")}</a>`
       : `<span class="tab tab-locked" aria-disabled="true" title="${L("Opens on 5 December", "Mở vào ngày 5 tháng 12")}">${TAB_LOCK}${L("Two", "Đôi ta")}<small>${L("5 Dec", "5/12")}</small></span>`);
@@ -1147,7 +1149,19 @@ root.addEventListener("submit", e => {
   }
   render();
 });
-window.addEventListener("hashchange", () => { openMenu = null; render(); window.scrollTo(0, 0); });
+function claimEditorLink() {
+  const m = /^#me-(two|songs)-([A-Za-z0-9]+)$/.exec(location.hash);
+  if (!m) return false;
+  const view = m[1], key = m[2];
+  history.replaceState(null, "", location.pathname + location.search + "#" + view);   // keep the key out of the address bar
+  getDoc(doc(db, "drafts", key)).then(() => {
+    try { localStorage.setItem("editor", key); } catch (e) {}
+    photoKey = null; keyTried = 0; render(); window.scrollTo(0, 0);
+  }, () => render());
+  return true;
+}
+claimEditorLink();
+window.addEventListener("hashchange", () => { if (claimEditorLink()) return; openMenu = null; render(); window.scrollTo(0, 0); });
 let wasOpen = letterOpen(), wasSongs = songsOpen(), wasTwo = twoOpen();
 setInterval(() => {
   const el = document.getElementById("cd"); if (el) el.innerHTML = countdownHTML();
