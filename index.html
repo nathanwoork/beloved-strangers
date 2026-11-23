@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%99%A1%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Caveat:wght@500;600&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Caveat:wght@500;600&family=Dancing+Script:wght@500;600&family=Be+Vietnam+Pro:wght@400;500;600&family=Patrick+Hand&display=swap" rel="stylesheet">
 <style>
 /* Layout idea: a phone-width shared journal. Header with countdown, sticky day tabs, a dashed timeline per day, handwritten notes on lined paper. */
 :root{
@@ -286,6 +286,25 @@ button.motif-head svg{transition:transform .15s}
 .nextwrap summary span{color:var(--accent-ink); text-decoration:underline; margin-left:4px}
 .nextwrap .nextform{max-width:none; margin-top:8px}
 
+/* Language switch (per phone) */
+.controls{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.lang{display:inline-flex; border:1px solid var(--line); border-radius:999px; background:var(--card); padding:2px}
+.lang button{border:none; background:transparent; border-radius:999px; padding:3px 9px; font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--muted)}
+.lang button[aria-pressed="true"]{background:var(--accent); color:#fff}
+:root[data-palette="lace"] .lang button[aria-pressed="true"]{color:var(--ink); background:var(--accent-soft)}
+.linkbtn{border:none; background:none; padding:0; color:var(--accent-ink); text-decoration:underline; font-size:13px}
+
+/* Vietnamese mode: faces that carry every Vietnamese accent (DM Sans and Caveat don't) */
+:root[lang="vi"]{--body:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif; --hand:"Patrick Hand", "Dancing Script", cursive}
+:root[lang="vi"] .names{font-size:22px}
+:root[lang="vi"] .greet{font-size:19px}
+:root[lang="vi"] .cd-label,:root[lang="vi"] .cd-msg{font-size:18px}
+:root[lang="vi"] .inote,:root[lang="vi"] .tile-note{font-size:17px}
+:root[lang="vi"] .lined{font-size:18px}
+:root[lang="vi"] .letter-body{font-size:19px}
+:root[lang="vi"] .cat{font-size:21px}
+:root[lang="vi"] .empty{font-size:20px}
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -306,6 +325,79 @@ const DAYSTART = { fri: "2026-12-04", sat: "2026-12-05", sun: "2026-12-06" };
 const DAYMETA = { fri: { short: "Fri 4", long: "Friday, 4 December" }, sat: { short: "Sat 5", long: "Saturday, 5 December" }, sun: { short: "Sun 6", long: "Sunday, 6 December" } };
 const CATS = [{ id: "dinner", name: "Dinner ideas" }, { id: "rain", name: "Saturday backups" }, { id: "sunday", name: "Sunday before the flight" }, { id: "sweet", name: "Late night and sweet" }];
 const letterOpen = () => Date.now() >= LETTER_AT;
+
+/* ---------- language (per phone) + auto-translation of what we write ---------- */
+let lang = "en";
+try { const saved = localStorage.getItem("lang"); lang = saved === "vi" || saved === "en" ? saved : ((navigator.language || "").toLowerCase().startsWith("vi") ? "vi" : "en"); } catch (e) {}
+const L = (en, vi) => lang === "vi" ? vi : en;
+const DAYMETA_VI = { fri: { short: "T6 4/12", long: "Thứ Sáu, 4 tháng 12" }, sat: { short: "T7 5/12", long: "Thứ Bảy, 5 tháng 12" }, sun: { short: "CN 6/12", long: "Chủ Nhật, 6 tháng 12" } };
+const CAT_VI = { dinner: "Gợi ý bữa tối", rain: "Dự phòng cho thứ Bảy", sunday: "Chủ Nhật trước giờ bay", sweet: "Đêm khuya & đồ ngọt" };
+const THEME_VI = { peach: "Đào & kem", rose: "Hồng phấn & mận", tomato: "Cà chua & mèo đen", lace: "Hoa hồng trắng & ren", ribbon: "Nơ đỏ & trái tim", crimson: "Ren đỏ thẫm & pha lê" };
+const dayShort = d => lang === "vi" ? DAYMETA_VI[d.id].short : d.short;
+const dayLong = d => lang === "vi" ? DAYMETA_VI[d.id].long : d.long;
+const catName = c => lang === "vi" ? CAT_VI[c.id] : c.name;
+const VI_CHARS = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹĂÂĐÊÔƠƯ]/;
+let trCache = {};                 // shared, saved in the trip doc: { key: { src, en, vi } }
+const trWanted = new Set(), trQueue = new Map(), trOut = {};
+let trTimer = null, trSaveTimer = null, trRenderTimer = null, trBusy = 0, renderFocus = null;
+function trKey(text) { let h = 0x811c9dc5; for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return "k" + h.toString(36) + "_" + text.length; }
+function T(text) {
+  // Show what someone wrote in this phone's language. Unknown translations are fetched in the background.
+  if (!text || !String(text).trim()) return text || "";
+  text = String(text);
+  const isVi = VI_CHARS.test(text);
+  if ((lang === "vi" && isVi) || (lang === "en" && !isVi)) return text;
+  const k = trKey(text), c = trCache[k];
+  if (c && c[lang] != null) return c[lang];
+  trWanted.add(k); trQueue.set(k, text);
+  clearTimeout(trTimer); trTimer = setTimeout(pumpTr, 900);
+  return text;
+}
+// The field the person is typing in always shows exactly what they typed
+const fv = (bind, src) => (renderFocus && renderFocus.bind === bind) ? renderFocus.value : T(src);
+async function translateText(text, to) {
+  try {
+    const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to}&dt=t`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: "q=" + encodeURIComponent(text) });
+    if (r.ok) { const j = await r.json(); const out = (j[0] || []).map(x => x[0] || "").join(""); if (out) return { out, src: j[2] || "" }; }
+  } catch (e) {}
+  try {
+    const from = VI_CHARS.test(text) ? "vi" : "en";
+    if (from === to) return { out: text, src: from };
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 480))}&langpair=${from}|${to}`);
+    const j = await r.json(); const out = j && j.responseData && j.responseData.translatedText;
+    if (out) return { out, src: from };
+  } catch (e) {}
+  return null;
+}
+function pumpTr() {
+  while (trBusy < 4 && trQueue.size) {
+    const [k, text] = trQueue.entries().next().value; trQueue.delete(k);
+    if (!trWanted.has(k)) continue;                   // no longer on screen (e.g. text still being typed)
+    const to = lang; trBusy++;
+    translateText(text, to).then(res => {
+      trBusy--;
+      if (res) {
+        const out = res.src && res.src.slice(0, 2) === to ? text : res.out;  // already in this language: keep the original wording
+        trCache[k] = Object.assign({}, trCache[k], { [to]: out, src: res.src || "" });
+        trOut[k] = trCache[k];
+        clearTimeout(trSaveTimer); trSaveTimer = setTimeout(saveTr, 1500);
+        clearTimeout(trRenderTimer); trRenderTimer = setTimeout(() => { if (!writerKey()) render(); }, 250);
+      }
+      pumpTr();
+    });
+  }
+}
+function saveTr() {
+  const keys = Object.keys(trOut); if (!keys.length) return;
+  const args = [];
+  keys.forEach(k => { const v = trOut[k]; ["en", "vi", "src"].forEach(f => { if (v[f] != null) args.push(new FieldPath("tr", k, f), v[f]); }); delete trOut[k]; });
+  updateDoc(tripRef, ...args).catch(() => {});
+}
+function setLang(l) {
+  lang = l; try { localStorage.setItem("lang", l); } catch (e) {}
+  document.documentElement.lang = l; render();
+}
+document.documentElement.lang = lang;
 const SONGS_AT = new Date("2026-12-04T00:00:00+08:00").getTime();
 const songsOpen = () => Date.now() >= SONGS_AT;
 
@@ -488,13 +580,13 @@ window.addEventListener("offline", () => setStatus("offline"));
 function setStatus(s) { status = s; const el = document.getElementById("status"); if (el) el.outerHTML = statusHTML(); }
 function statusHTML() {
   const t = {
-    connecting: "Connecting…",
-    saved: "Synced",
-    saving: "Saving…",
-    offline: "Offline. Changes will sync when you're back online",
-    error: "Couldn't save. Check your connection and try again."
+    connecting: L("Connecting…", "Đang kết nối…"),
+    saved: L("Synced", "Đã đồng bộ"),
+    saving: L("Saving…", "Đang lưu…"),
+    offline: L("Offline. Changes will sync when you're back online", "Mất kết nối. Thay đổi sẽ được đồng bộ khi có mạng lại"),
+    error: L("Couldn't save. Check your connection and try again.", "Không lưu được. Kiểm tra kết nối rồi thử lại.")
   }[status] || "";
-  return `<div class="status" id="status" data-s="${status}" role="status"><span><span class="dot"></span>${t}</span><span class="hint2">Updates live on both phones</span></div>`;
+  return `<div class="status" id="status" data-s="${status}" role="status"><span><span class="dot"></span>${t}</span><span class="hint2">${L("Updates live · auto-translated", "Cập nhật trực tiếp · tự động dịch")}</span></div>`;
 }
 
 /* ---------- routing ---------- */
@@ -516,6 +608,7 @@ const MYT = 8 * 3600e3;
 const nowMYT = () => new Date(Date.now() + MYT);              // read with getUTC* for Malaysia time
 const nextAt = () => (state && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(state.nextVisit || "")) ? new Date(state.nextVisit + ":00+08:00").getTime() : null;
 function prettyNext(ms) {
+  if (lang === "vi") { const d = new Date(ms + MYT), W = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; return `${W[d.getUTCDay()]} ${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()}, ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`; }
   const d = new Date(ms + MYT), M = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], W = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   let h = d.getUTCHours(), m = d.getUTCMinutes(), ap = h >= 12 ? "pm" : "am"; h = h % 12 || 12;
   return `${W[d.getUTCDay()]} ${d.getUTCDate()} ${M[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`;
@@ -523,24 +616,27 @@ function prettyNext(ms) {
 function greetingHTML() {
   // A different line for Heather each day, with a time-of-day hello (Malaysia time)
   const t = nowMYT(), hr = t.getUTCHours(), now = Date.now();
-  const hello = hr >= 5 && hr < 12 ? "Good morning" : hr >= 12 && hr < 17 ? "Good afternoon" : hr >= 17 && hr < 22 ? "Good evening" : "Still up";
+  const part = hr >= 5 && hr < 12 ? 0 : hr >= 12 && hr < 17 ? 1 : hr >= 17 && hr < 22 ? 2 : 3;
   const day = t.toISOString().slice(0, 10);
   let line;
-  if (now >= LETTER_AT) line = "for you, a thousand times over";
-  else if (day === "2026-12-04") line = now < START ? "today's finally the day" : "you're here, finally";
-  else if (day === "2026-12-05") line = "tea, flowers, and 2 years in 1 night";
-  else if (day === "2026-12-06") line = "our last day, let's make it count";
+  if (now >= LETTER_AT) line = L("for you, a thousand times over", "vì em, cả ngàn lần như thế");
+  else if (day === "2026-12-04") line = now < START ? L("today's finally the day", "cuối cùng ngày ấy cũng đến") : L("you're here, finally", "cuối cùng em cũng ở đây rồi");
+  else if (day === "2026-12-05") line = L("tea, flowers, and 2 years in 1 night", "trà, hoa, và hai năm trong một đêm");
+  else if (day === "2026-12-06") line = L("our last day, let's make it count", "ngày cuối của tụi mình, hãy sống trọn từng phút nhé");
   else {
     const sleeps = Math.round((Date.UTC(2026, 11, 4) - Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate())) / 864e5);
-    line = sleeps === 1 ? "one more sleep" : `${sleeps} more sleeps`;
+    line = sleeps === 1 ? L("one more sleep", "chỉ còn một đêm nữa thôi") : L(`${sleeps} more sleeps`, `còn ${sleeps} đêm nữa thôi`);
   }
   const cap = line.charAt(0).toUpperCase() + line.slice(1);
-  return `<p class="greet">${hello}, Heather${hello === "Still up" ? "?" : "."} ${cap}</p>`;
+  const hello = lang === "vi" ? ["Chào buổi sáng, Heather.", "Chào buổi chiều, Heather.", "Chào buổi tối, Heather.", "Vẫn còn thức à, Heather?"][part]
+    : ["Good morning, Heather.", "Good afternoon, Heather.", "Good evening, Heather.", "Still up, Heather?"][part];
+  return `<p class="greet">${hello} ${cap}</p>`;
 }
 function boxes(target, label) {
   const s = Math.max(0, Math.floor((target - Date.now()) / 1000)), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
-  return `<div class="countdown" aria-label="${d} days, ${h} hours and ${m} minutes ${esc(label)}">` +
-    `<div class="cd"><b>${d}</b><small>${d === 1 ? "day" : "days"}</small></div><div class="cd"><b>${h}</b><small>${h === 1 ? "hour" : "hours"}</small></div><div class="cd"><b>${m}</b><small>${m === 1 ? "min" : "mins"}</small></div>` +
+  const aria = L(`${d} days, ${h} hours and ${m} minutes ${label}`, `${d} ngày, ${h} giờ và ${m} phút ${label}`);
+  return `<div class="countdown" aria-label="${esc(aria)}">` +
+    `<div class="cd"><b>${d}</b><small>${L(d === 1 ? "day" : "days", "ngày")}</small></div><div class="cd"><b>${h}</b><small>${L(h === 1 ? "hour" : "hours", "giờ")}</small></div><div class="cd"><b>${m}</b><small>${L(m === 1 ? "min" : "mins", "phút")}</small></div>` +
     `<span class="cd-label">${label}</span></div>`;
 }
 function countdownHTML() {
@@ -548,14 +644,14 @@ function countdownHTML() {
   let body;
   if (now >= LETTER_AT) {
     const nx = nextAt();
-    if (nx && now < nx) body = boxes(nx, "until we see each other again");
-    else if (nx) body = '<div class="countdown"><span class="cd-msg">Together again ♡</span></div>';
-    else body = '<div class="countdown"><span class="cd-msg">Until next time ♡</span></div>';
-  } else if (now >= END) body = '<div class="countdown"><span class="cd-msg">Hope it was a wonderful weekend ♡</span></div>';
+    if (nx && now < nx) body = boxes(nx, L("until we see each other again", "đến khi mình gặp lại nhau"));
+    else if (nx) body = `<div class="countdown"><span class="cd-msg">${L("Together again ♡", "Lại bên nhau rồi ♡")}</span></div>`;
+    else body = `<div class="countdown"><span class="cd-msg">${L("Until next time ♡", "Hẹn gặp lại lần sau ♡")}</span></div>`;
+  } else if (now >= END) body = `<div class="countdown"><span class="cd-msg">${L("Hope it was a wonderful weekend ♡", "Mong là cuối tuần này thật tuyệt vời ♡")}</span></div>`;
   else if (now >= START) {
     const n = Math.min(3, Math.floor((now - new Date("2026-12-04T00:00:00+08:00").getTime()) / 864e5) + 1);
-    body = `<div class="countdown"><span class="cd-msg">Day ${n} of 3. Enjoy it ♡</span></div>`;
-  } else body = boxes(START, "until 1:20 pm pickup");
+    body = `<div class="countdown"><span class="cd-msg">${L(`Day ${n} of 3. Enjoy it ♡`, `Ngày ${n}/3. Tận hưởng nhé ♡`)}</span></div>`;
+  } else body = boxes(START, L("until 1:20 pm pickup", "đến lúc đón em, 1:20 chiều"));
   return greetingHTML() + body;
 }
 function nextVisitHTML() {
@@ -563,10 +659,10 @@ function nextVisitHTML() {
   if (Date.now() < LETTER_AT) return "";
   const nx = nextAt();
   const form = `<form class="nextform" data-form="next">` +
-    `<label for="next-at">${nx ? "Change the date" : "When do we see each other next?"}</label>` +
-    `<div class="nextrow"><input id="next-at" name="when" type="datetime-local" value="${esc(state.nextVisit || "")}" aria-label="Date and time of our next visit">` +
-    `<button class="cta" type="submit">${nx ? "Update" : "Set"}</button></div></form>`;
-  return nx ? `<details class="nextwrap"><summary>Next time: ${esc(prettyNext(nx))} <span>change</span></summary>${form}</details>` : form;
+    `<label for="next-at">${nx ? L("Change the date", "Đổi ngày") : L("When do we see each other next?", "Khi nào mình gặp lại nhau?")}</label>` +
+    `<div class="nextrow"><input id="next-at" name="when" type="datetime-local" value="${esc(state.nextVisit || "")}" aria-label="${L("Date and time of our next visit", "Ngày giờ lần gặp tới")}">` +
+    `<button class="cta" type="submit">${nx ? L("Update", "Cập nhật") : L("Set", "Lưu")}</button></div></form>`;
+  return nx ? `<details class="nextwrap"><summary>${L("Next time: ", "Lần tới: ")}${esc(prettyNext(nx))} <span>${L("change", "đổi")}</span></summary>${form}</details>` : form;
 }
 
 /* ---------- views ---------- */
@@ -575,70 +671,70 @@ const ta = (cls, bind, val, ph, label) => `<textarea class="${cls}" rows="1" dat
 function dayView(d) {
   const M = theme();
   const idx = state.days.indexOf(d);
-  const first = d.long.split(",")[0];
+  const first = dayLong(d).split(",")[0];
   const items = d.items.map((it, i) => {
     const b = `item|${d.id}|${it.id}|`;
     const tools = openMenu === it.id ? '<div class="tools">' +
-      (i > 0 ? `<button type="button" data-act="up" data-day="${d.id}" data-id="${it.id}">Move up</button>` : "") +
-      (i < d.items.length - 1 ? `<button type="button" data-act="down" data-day="${d.id}" data-id="${it.id}">Move down</button>` : "") +
-      `<button type="button" class="danger" data-act="del" data-day="${d.id}" data-id="${it.id}">Remove</button></div>` : "";
-    return `<div class="item"><div class="when"><input type="text" data-bind="${b}time" value="${esc(it.time)}" placeholder="time" aria-label="Time"></div>` +
-      `<div class="body">${M.dot ? `<span class="mdot">${M.dot}</span>` : ""}<div class="titlerow">${ta("ititle", b + "title", it.title, "What are we doing?", "Plan")}` +
-      `<button type="button" class="more" data-act="menu" data-id="${it.id}" aria-expanded="${openMenu === it.id}" aria-label="Move or remove this plan">⋯</button></div>` +
-      ta("inote", b + "note", it.note, "add a note…", "Note") + tools + "</div></div>";
+      (i > 0 ? `<button type="button" data-act="up" data-day="${d.id}" data-id="${it.id}">${L("Move up", "Lên trên")}</button>` : "") +
+      (i < d.items.length - 1 ? `<button type="button" data-act="down" data-day="${d.id}" data-id="${it.id}">${L("Move down", "Xuống dưới")}</button>` : "") +
+      `<button type="button" class="danger" data-act="del" data-day="${d.id}" data-id="${it.id}">${L("Remove", "Xoá")}</button></div>` : "";
+    return `<div class="item"><div class="when"><input type="text" data-bind="${b}time" value="${esc(fv(b + "time", it.time))}" placeholder="${L("time", "giờ")}" aria-label="${L("Time", "Giờ")}"></div>` +
+      `<div class="body">${M.dot ? `<span class="mdot">${M.dot}</span>` : ""}<div class="titlerow">${ta("ititle", b + "title", fv(b + "title", it.title), L("What are we doing?", "Mình làm gì?"), L("Plan", "Kế hoạch"))}` +
+      `<button type="button" class="more" data-act="menu" data-id="${it.id}" aria-expanded="${openMenu === it.id}" aria-label="${L("Move or remove this plan", "Di chuyển hoặc xoá mục này")}">⋯</button></div>` +
+      ta("inote", b + "note", fv(b + "note", it.note), L("add a note…", "thêm ghi chú…"), L("Note", "Ghi chú")) + tools + "</div></div>";
   }).join("");
-  return `<section class="view"><div class="dayhead"><span class="eyebrow">Day ${idx + 1} of 3</span><h2>${esc(d.long)}</h2>` +
-    `<input class="subtitle" type="text" data-bind="day|${d.id}|title" value="${esc(d.title)}" placeholder="Give this day a title" aria-label="Day title"></div>` +
+  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L(`Day ${idx + 1} of 3`, `Ngày ${idx + 1}/3`)}</span><h2>${esc(dayLong(d))}</h2>` +
+    `<input class="subtitle" type="text" data-bind="day|${d.id}|title" value="${esc(fv(`day|${d.id}|title`, d.title))}" placeholder="${L("Give this day a title", "Đặt tên cho ngày này")}" aria-label="${L("Day title", "Tên ngày")}"></div>` +
     `<div class="timeline">${items}</div>` +
-    `<button type="button" class="add" data-act="additem" data-day="${d.id}">+ Add to ${esc(first)}</button>` +
-    `<div class="paper">${stickerHTML()}<h3>Notes for ${esc(first)}</h3><p class="hint">Anything for this day: ideas, reminders, little things.</p>` +
-    ta("lined", `day|${d.id}|note`, d.note, "", "Notes for " + d.long) + "</div></section>";
+    `<button type="button" class="add" data-act="additem" data-day="${d.id}">${L("+ Add to ", "+ Thêm vào ")}${esc(first)}</button>` +
+    `<div class="paper">${stickerHTML()}<h3>${L("Notes for ", "Ghi chú cho ")}${esc(first)}</h3><p class="hint">${L("Anything for this day: ideas, reminders, little things.", "Bất cứ điều gì cho ngày này: ý tưởng, lời nhắc, những điều nhỏ xinh.")}</p>` +
+    ta("lined", `day|${d.id}|note`, fv(`day|${d.id}|note`, d.note), "", L("Notes for ", "Ghi chú cho ") + dayLong(d)) + "</div></section>";
 }
 function placesView() {
-  const chips = `<div class="chips" role="group" aria-label="Filter places"><button type="button" class="chip" data-act="filter" data-cat="all" aria-pressed="${filter === "all"}">All</button>` +
-    CATS.map(c => `<button type="button" class="chip" data-act="filter" data-cat="${c.id}" aria-pressed="${filter === c.id}">${esc(c.name)}</button>`).join("") + "</div>";
-  const opts = state.days.map(d => `<option value="${d.id}">${esc(d.short)}</option>`).join("");
+  const chips = `<div class="chips" role="group" aria-label="${L("Filter places", "Lọc địa điểm")}"><button type="button" class="chip" data-act="filter" data-cat="all" aria-pressed="${filter === "all"}">${L("All", "Tất cả")}</button>` +
+    CATS.map(c => `<button type="button" class="chip" data-act="filter" data-cat="${c.id}" aria-pressed="${filter === c.id}">${esc(catName(c))}</button>`).join("") + "</div>";
+  const opts = state.days.map(d => `<option value="${d.id}">${esc(dayShort(d))}</option>`).join("");
   const groups = CATS.filter(c => filter === "all" || filter === c.id).map(c => {
     const ps = state.places.filter(p => p.cat === c.id);
-    if (!ps.length) return `<h3 class="cat">${esc(c.name)}</h3><p class="fine">Nothing here yet.</p>`;
-    return `<h3 class="cat">${esc(c.name)}</h3><div class="places">` + ps.map(p => {
+    if (!ps.length) return `<h3 class="cat">${esc(catName(c))}</h3><p class="fine">${L("Nothing here yet.", "Chưa có gì ở đây.")}</p>`;
+    return `<h3 class="cat">${esc(catName(c))}</h3><div class="places">` + ps.map(p => {
       const b = `place|${p.id}|`;
-      return `<article class="place"><input class="pname" type="text" data-bind="${b}name" value="${esc(p.name)}" aria-label="Place name">` +
-        `<input class="parea" type="text" data-bind="${b}area" value="${esc(p.area)}" placeholder="Area" aria-label="Area">` +
-        ta("pwhy", b + "why", p.why, "Why go?", "Why go") +
-        `<div class="prow"><label for="to-${p.id}" style="font-size:13px;color:var(--muted)">Add to</label><select id="to-${p.id}">${opts}</select>` +
-        `<button type="button" class="ghost" data-act="toDay" data-id="${p.id}">Add</button>` +
-        `<button type="button" class="danger push" data-act="delplace" data-id="${p.id}">Remove</button></div></article>`;
+      return `<article class="place"><input class="pname" type="text" data-bind="${b}name" value="${esc(fv(b + "name", p.name))}" aria-label="${L("Place name", "Tên địa điểm")}">` +
+        `<input class="parea" type="text" data-bind="${b}area" value="${esc(fv(b + "area", p.area))}" placeholder="${L("Area", "Khu vực")}" aria-label="${L("Area", "Khu vực")}">` +
+        ta("pwhy", b + "why", fv(b + "why", p.why), L("Why go?", "Vì sao nên đến?"), L("Why go", "Vì sao nên đến")) +
+        `<div class="prow"><label for="to-${p.id}" style="font-size:13px;color:var(--muted)">${L("Add to", "Thêm vào")}</label><select id="to-${p.id}">${opts}</select>` +
+        `<button type="button" class="ghost" data-act="toDay" data-id="${p.id}">${L("Add", "Thêm")}</button>` +
+        `<button type="button" class="danger push" data-act="delplace" data-id="${p.id}">${L("Remove", "Xoá")}</button></div></article>`;
     }).join("") + "</div>";
   }).join("");
-  const catOpts = CATS.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
-  return `<section class="view"><div class="dayhead"><span class="eyebrow">Suggestions</span><h2>Places we could go</h2></div>${chips}${groups}` +
-    '<form class="newplace" data-form="place"><h3>Add a place</h3>' +
-    '<div class="field"><label for="np-name">Name</label><input id="np-name" name="name" type="text" required placeholder="e.g. that café you saw on TikTok"></div>' +
-    '<div class="field"><label for="np-area">Area or when</label><input id="np-area" name="area" type="text" placeholder="e.g. Bangsar"></div>' +
-    `<div class="field"><label for="np-cat">Section</label><select id="np-cat" name="cat">${catOpts}</select></div>` +
-    '<button class="cta" type="submit">Add place</button></form>' +
-    '<p class="fine">These are starting ideas. Check opening hours before we head out.</p></section>';
+  const catOpts = CATS.map(c => `<option value="${c.id}">${esc(catName(c))}</option>`).join("");
+  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("Suggestions", "Gợi ý")}</span><h2>${L("Places we could go", "Những nơi mình có thể đến")}</h2></div>${chips}${groups}` +
+    `<form class="newplace" data-form="place"><h3>${L("Add a place", "Thêm địa điểm")}</h3>` +
+    `<div class="field"><label for="np-name">${L("Name", "Tên")}</label><input id="np-name" name="name" type="text" required placeholder="${L("e.g. that café you saw on TikTok", "vd: quán cà phê em thấy trên TikTok")}"></div>` +
+    `<div class="field"><label for="np-area">${L("Area or when", "Khu vực hoặc thời gian")}</label><input id="np-area" name="area" type="text" placeholder="${L("e.g. Bangsar", "vd: Bangsar")}"></div>` +
+    `<div class="field"><label for="np-cat">${L("Section", "Mục")}</label><select id="np-cat" name="cat">${catOpts}</select></div>` +
+    `<button class="cta" type="submit">${L("Add place", "Thêm địa điểm")}</button></form>` +
+    `<p class="fine">${L("These are starting ideas. Check opening hours before we head out.", "Đây chỉ là gợi ý ban đầu. Nhớ xem giờ mở cửa trước khi đi nhé.")}</p></section>`;
 }
 function notesView() {
   const done = state.checks.filter(c => c.done).length;
   const list = state.checks.map(c =>
-    `<li class="${c.done ? "done" : ""}"><input type="checkbox" id="ck-${c.id}" data-act="check" data-id="${c.id}"${c.done ? " checked" : ""} aria-label="Done">` +
-    `<input class="ctext" type="text" data-bind="check|${c.id}" value="${esc(c.text)}" aria-label="Checklist item">` +
-    `<button type="button" class="x" data-act="delcheck" data-id="${c.id}" aria-label="Remove ${esc(c.text)}">×</button></li>`).join("");
-  return `<section class="view"><div class="dayhead"><span class="eyebrow">Before and during</span><h2>Checklist</h2></div>` +
-    `<p class="progress">${done} of ${state.checks.length} done</p><ul class="checks">${list}</ul>` +
-    '<form class="addrow" data-form="check"><input id="nc-text" name="text" type="text" placeholder="Add something to remember" aria-label="New checklist item"><button class="cta" type="submit">Add</button></form>' +
-    '<div class="paper">' + stickerHTML() + '<h3>Notes to each other</h3><p class="hint">Write anything here. It stays on the page for both of you.</p>' +
-    ta("lined", "notes", state.notes, "", "Notes to each other") + "</div></section>";
+    `<li class="${c.done ? "done" : ""}"><input type="checkbox" id="ck-${c.id}" data-act="check" data-id="${c.id}"${c.done ? " checked" : ""} aria-label="${L("Done", "Xong")}">` +
+    `<input class="ctext" type="text" data-bind="check|${c.id}" value="${esc(fv(`check|${c.id}`, c.text))}" aria-label="${L("Checklist item", "Việc cần làm")}">` +
+    `<button type="button" class="x" data-act="delcheck" data-id="${c.id}" aria-label="${L("Remove ", "Xoá ")}${esc(T(c.text))}">×</button></li>`).join("");
+  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("Before and during", "Trước và trong chuyến đi")}</span><h2>${L("Checklist", "Danh sách việc cần làm")}</h2></div>` +
+    `<p class="progress">${L(`${done} of ${state.checks.length} done`, `Xong ${done}/${state.checks.length}`)}</p><ul class="checks">${list}</ul>` +
+    `<form class="addrow" data-form="check"><input id="nc-text" name="text" type="text" placeholder="${L("Add something to remember", "Thêm điều cần nhớ")}" aria-label="${L("New checklist item", "Việc mới")}"><button class="cta" type="submit">${L("Add", "Thêm")}</button></form>` +
+    '<div class="paper">' + stickerHTML() + `<h3>${L("Notes to each other", "Lời nhắn cho nhau")}</h3><p class="hint">${L("Write anything here. It stays on the page for both of you.", "Viết gì cũng được. Lời nhắn sẽ ở lại đây cho cả hai.")}</p>` +
+    ta("lined", "notes", fv("notes", state.notes), "", L("Notes to each other", "Lời nhắn cho nhau")) + "</div></section>";
 }
 
 const LOCK_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 const ENV_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>';
 function letterCardHTML(v) {
   if (v === "letter") return "";
-  if (!letterOpen()) return `<div class="lettercard locked" aria-disabled="true"><span class="lc-icon">${LOCK_SVG}</span><span class="lc-text"><b>A letter</b><small>Opens when we say goodbye</small></span></div>`;
-  return `<a class="lettercard" href="#letter"><span class="lc-icon">${ENV_SVG}</span><span class="lc-text"><b>A letter for you</b><small>Open it ♡</small></span></a>`;
+  if (!letterOpen()) return `<div class="lettercard locked" aria-disabled="true"><span class="lc-icon">${LOCK_SVG}</span><span class="lc-text"><b>${L("A letter", "Một lá thư")}</b><small>${L("Opens when we say goodbye", "Mở ra khi mình nói lời tạm biệt")}</small></span></div>`;
+  return `<a class="lettercard" href="#letter"><span class="lc-icon">${ENV_SVG}</span><span class="lc-text"><b>${L("A letter for you", "Một lá thư cho em")}</b><small>${L("Open it ♡", "Mở thư nhé ♡")}</small></span></a>`;
 }
 /* ---------- songs (Spotify gallery) ---------- */
 const NOTE_SVG = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>';
@@ -666,8 +762,9 @@ async function addSong(raw) {
   const p = parseSpotify(raw);
   if (!p) {
     songMsg = raw.trim() && !/^https?:/i.test(raw.trim())
-      ? `That's not a Spotify link yet. <a href="https://open.spotify.com/search/${encodeURIComponent(raw.trim())}" target="_blank" rel="noopener">Search Spotify for “${esc(raw.trim())}”</a>, then tap Share → Copy link and paste it here.`
-      : "That doesn't look like a Spotify link. In Spotify, tap Share → Copy link, then paste it here.";
+      ? L(`That's not a Spotify link yet. <a href="https://open.spotify.com/search/${encodeURIComponent(raw.trim())}" target="_blank" rel="noopener">Search Spotify for “${esc(raw.trim())}”</a>, then tap Share → Copy link and paste it here.`,
+          `Đây chưa phải link Spotify. <a href="https://open.spotify.com/search/${encodeURIComponent(raw.trim())}" target="_blank" rel="noopener">Tìm “${esc(raw.trim())}” trên Spotify</a>, rồi chọn Chia sẻ → Sao chép liên kết và dán vào đây.`)
+      : L("That doesn't look like a Spotify link. In Spotify, tap Share → Copy link, then paste it here.", "Có vẻ đây không phải link Spotify. Trong Spotify, chọn Chia sẻ → Sao chép liên kết rồi dán vào đây.");
     render(); return;
   }
   songBusy = true; songMsg = ""; render();
@@ -683,23 +780,23 @@ function songsView() {
   const pl = state.playlist;
   const head = pl && pl.url ? `<a class="pl-card" href="${esc(pl.url)}" target="_blank" rel="noopener">` +
       (pl.art ? `<img src="${esc(pl.art)}" alt="" width="56" height="56">` : `<span class="pl-art">${NOTE_SVG}</span>`) +
-      `<span class="pl-text"><b>${esc(pl.name || "Our playlist")}</b><small>${state.songs.length} songs · Open in Spotify</small></span></a>` : "";
+      `<span class="pl-text"><b>${esc(pl.name || L("Our playlist", "Danh sách nhạc của tụi mình"))}</b><small>${L(`${state.songs.length} songs · Open in Spotify`, `${state.songs.length} bài · Mở trong Spotify`)}</small></span></a>` : "";
   const tiles = state.songs.map(sg => {
     const art = sg.art ? `<img src="${esc(sg.art)}" alt="" loading="lazy">` : `<span class="tile-blank">${NOTE_SVG}</span>`;
     return `<article class="tile">` +
-      `<a class="tile-art" href="${esc(sg.url)}" target="_blank" rel="noopener" aria-label="Open ${esc(sg.title)} in Spotify">${art}</a>` +
+      `<a class="tile-art" href="${esc(sg.url)}" target="_blank" rel="noopener" aria-label="${esc(L(`Open ${sg.title} in Spotify`, `Mở ${sg.title} trong Spotify`))}">${art}</a>` +
       `<div class="tile-row"><div class="tile-text">` +
       `<b class="tile-title" title="${esc(sg.title)}">${esc(sg.title)}</b>` +
-      (sg.artist ? `<span class="tile-artist">${esc(sg.artist)}</span>` : `<input class="tile-artist" type="text" data-bind="song|${sg.id}|artist" value="" placeholder="Singer name" aria-label="Singer">`) +
-      `</div><button type="button" class="heart${sg.fav ? " on" : ""}" data-act="fav" data-id="${sg.id}" aria-pressed="${!!sg.fav}" aria-label="${sg.fav ? "Unfavourite" : "Favourite"} ${esc(sg.title)}">${HEART_SVG}</button></div>` +
-      ta("tile-note", `song|${sg.id}|note`, sg.note, "a little note…", "Note about " + sg.title) +
-      `<button type="button" class="x tile-x" data-act="delsong" data-id="${sg.id}" aria-label="Remove ${esc(sg.title)}">×</button>` +
+      (sg.artist ? `<span class="tile-artist">${esc(sg.artist)}</span>` : `<input class="tile-artist" type="text" data-bind="song|${sg.id}|artist" value="" placeholder="${L("Singer name", "Tên ca sĩ")}" aria-label="${L("Singer", "Ca sĩ")}">`) +
+      `</div><button type="button" class="heart${sg.fav ? " on" : ""}" data-act="fav" data-id="${sg.id}" aria-pressed="${!!sg.fav}" aria-label="${sg.fav ? L("Unfavourite", "Bỏ thích") : L("Favourite", "Thích")} ${esc(sg.title)}">${HEART_SVG}</button></div>` +
+      ta("tile-note", `song|${sg.id}|note`, fv(`song|${sg.id}|note`, sg.note), L("a little note…", "một lời nhắn nhỏ…"), L("Note about ", "Ghi chú về ") + sg.title) +
+      `<button type="button" class="x tile-x" data-act="delsong" data-id="${sg.id}" aria-label="${L("Remove ", "Xoá ")}${esc(sg.title)}">×</button>` +
       `</article>`;
   }).join("");
-  return `<section class="view"><div class="dayhead"><span class="eyebrow">For the drive and the late nights</span><h2>Our songs</h2></div>` + head +
-    (state.songs.length ? `<div class="gallery">${tiles}</div>` : '<p class="empty">No songs yet. Add the first one ♡</p>') +
-    '<form class="addrow songadd" data-form="song"><input id="song-url" name="url" type="text" inputmode="url" autocomplete="off" placeholder="Add a song: paste a Spotify link" aria-label="Spotify link"><button class="cta" type="submit"' + (songBusy ? " disabled" : "") + '>' + (songBusy ? "Adding…" : "Add") + '</button></form>' +
-    (songMsg ? `<p class="fine songmsg" role="alert">${songMsg}</p>` : '<p class="fine">Tap a cover to open the song in Spotify. In Spotify, Share → Copy link gives you a link to paste here.</p>') +
+  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("For the drive and the late nights", "Cho những chuyến xe và những đêm khuya")}</span><h2>${L("Our songs", "Những bài hát của tụi mình")}</h2></div>` + head +
+    (state.songs.length ? `<div class="gallery">${tiles}</div>` : `<p class="empty">${L("No songs yet. Add the first one ♡", "Chưa có bài nào. Thêm bài đầu tiên nhé ♡")}</p>`) +
+    `<form class="addrow songadd" data-form="song"><input id="song-url" name="url" type="text" inputmode="url" autocomplete="off" placeholder="${L("Add a song: paste a Spotify link", "Thêm bài hát: dán link Spotify")}" aria-label="${L("Spotify link", "Link Spotify")}"><button class="cta" type="submit"` + (songBusy ? " disabled" : "") + '>' + (songBusy ? L("Adding…", "Đang thêm…") : L("Add", "Thêm")) + '</button></form>' +
+    (songMsg ? `<p class="fine songmsg" role="alert">${songMsg}</p>` : `<p class="fine">${L("Tap a cover to open the song in Spotify. In Spotify, Share → Copy link gives you a link to paste here.", "Chạm vào ảnh bìa để mở bài hát trong Spotify. Trong Spotify, chọn Chia sẻ → Sao chép liên kết để lấy link dán vào đây.")}</p>`) +
     '</section>';
 }
 const TAB_LOCK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
@@ -722,13 +819,19 @@ function heartBurst(from) {
   }
 }
 function stickerHTML() { const T = theme(); return T.sticker ? `<span class="sticker">${T.sticker}</span>` : ""; }
+let letterOriginal = false;
 function letterView() {
-  let body;
-  if (letterText === null && !letterErr) { loadLetter(); body = '<span class="hint">Opening…</span>'; }
-  else if (letterErr) body = '<span class="hint">Almost. The letter opens at 6:30 pm. Refresh in a minute.</span>';
-  else body = letterText ? esc(letterText) : '<span class="hint">The letter will appear here.</span>';
-  return '<section class="view"><div class="dayhead"><span class="eyebrow">Sunday, 6 December · after goodbye</span><h2>A letter</h2></div>' +
-    `<div class="paper letter"><div class="letter-body">${body}</div></div></section>`;
+  let body, toggle = "";
+  if (letterText === null && !letterErr) { loadLetter(); body = `<span class="hint">${L("Opening…", "Đang mở…")}</span>`; }
+  else if (letterErr) body = `<span class="hint">${L("Almost. The letter opens at 6:30 pm. Refresh in a minute.", "Sắp rồi. Thư sẽ mở lúc 6:30 tối. Tải lại trang sau một phút nhé.")}</span>`;
+  else if (!letterText) body = `<span class="hint">${L("The letter will appear here.", "Lá thư sẽ xuất hiện ở đây.")}</span>`;
+  else {
+    const tr = T(letterText);
+    body = esc(letterOriginal ? letterText : tr);
+    if (tr !== letterText) toggle = `<p class="fine"><button type="button" class="linkbtn" data-act="letterorig">${letterOriginal ? L("See translation", "Xem bản dịch") : L("See original", "Xem bản gốc")}</button></p>`;
+  }
+  return `<section class="view"><div class="dayhead"><span class="eyebrow">${L("Sunday, 6 December · after goodbye", "Chủ Nhật, 6 tháng 12 · sau lời tạm biệt")}</span><h2>${L("A letter", "Một lá thư")}</h2></div>` +
+    `<div class="paper letter"><div class="letter-body">${body}</div></div>${toggle}</section>`;
 }
 function loadLetter() {
   getDoc(doc(db, "letter", "goodbye")).then(s => { letterText = s.exists() ? (s.data().text || "") : ""; letterErr = null; render(); },
@@ -778,24 +881,31 @@ function render() {
   if (wk) { renderWriter(wk); return; }
   if (!state) { root.innerHTML = '<div class="wrap"><header class="top"><span class="names">Nathan &amp; Heather</span><h1>Beloved Strangers</h1></header>' + statusHTML() + "</div>"; return; }
   const ui = snapshotUI();
-  const T = theme();
-  document.documentElement.setAttribute("data-palette", T.id);
+  const fe = document.activeElement;
+  renderFocus = (fe && root.contains(fe) && fe.dataset && fe.dataset.bind) ? { bind: fe.dataset.bind, value: fe.value } : null;
+  trWanted.clear();
+  const TH = theme();
+  document.documentElement.setAttribute("data-palette", TH.id);
   const v = currentView();
-  const tabs = state.days.map(d => `<a class="tab" href="#${d.id}"${v === d.id ? ' aria-current="page"' : ""}>${esc(d.short)}</a>`).join("") +
-    `<a class="tab" href="#places"${v === "places" ? ' aria-current="page"' : ""}>Places</a>` +
-    (songsOpen() ? `<a class="tab" href="#songs"${v === "songs" ? ' aria-current="page"' : ""}>Songs</a>`
-      : `<span class="tab tab-locked" aria-disabled="true" title="Opens on 4 December">${TAB_LOCK}Songs<small>4 Dec</small></span>`) +
-    `<a class="tab" href="#notes"${v === "notes" ? ' aria-current="page"' : ""}>To-do &amp; notes</a>` +
-    (letterOpen() ? `<a class="tab" href="#letter"${v === "letter" ? ' aria-current="page"' : ""}>A letter ♡</a>` : "");
+  const tabs = state.days.map(d => `<a class="tab" href="#${d.id}"${v === d.id ? ' aria-current="page"' : ""}>${esc(dayShort(d))}</a>`).join("") +
+    `<a class="tab" href="#places"${v === "places" ? ' aria-current="page"' : ""}>${L("Places", "Địa điểm")}</a>` +
+    (songsOpen() ? `<a class="tab" href="#songs"${v === "songs" ? ' aria-current="page"' : ""}>${L("Songs", "Bài hát")}</a>`
+      : `<span class="tab tab-locked" aria-disabled="true" title="${L("Opens on 4 December", "Mở vào ngày 4 tháng 12")}">${TAB_LOCK}${L("Songs", "Bài hát")}<small>${L("4 Dec", "4/12")}</small></span>`) +
+    `<a class="tab" href="#notes"${v === "notes" ? ' aria-current="page"' : ""}>${L("To-do &amp; notes", "Việc cần làm &amp; ghi chú")}</a>` +
+    (letterOpen() ? `<a class="tab" href="#letter"${v === "letter" ? ' aria-current="page"' : ""}>${L("A letter ♡", "Lá thư ♡")}</a>` : "");
   const body = v === "letter" ? letterView() : v === "songs" ? songsView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
+  const langSwitch = `<div class="lang" role="group" aria-label="Language / Ngôn ngữ">` +
+    `<button type="button" data-act="lang" data-lang="en" aria-pressed="${lang === "en"}" lang="en">EN</button>` +
+    `<button type="button" data-act="lang" data-lang="vi" aria-pressed="${lang === "vi"}" lang="vi">VI</button></div>`;
   root.innerHTML = '<div class="wrap">' +
     '<header class="top"><div class="toprow"><button type="button" class="names" data-act="hearts">Nathan &amp; Heather</button>' +
-    '<div class="swatches" role="group" aria-label="Colour theme">' +
-    THEMES.map(t => `<button type="button" class="sw" style="background:linear-gradient(135deg,${t.sw[0]} 50%,${t.sw[1]} 50%)" data-act="theme" data-theme="${t.id}" aria-pressed="${T.id === t.id}" aria-label="${esc(t.name)} theme" title="${esc(t.name)}"></button>`).join("") + '</div></div>' +
-    '<h1>Beloved Strangers</h1><div class="dates">Fri 4 – Sun 6 December 2026 · Kuala Lumpur</div>' +
-    `<div id="cd">${countdownHTML()}</div>` + nextVisitHTML() + (T.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="Send some hearts">${T.head}</button>` : "") + '</header>' +
-    `<nav class="tabs" aria-label="Sections"><div class="tabrow">${tabs}</div>${statusHTML()}</nav>` +
-    body + letterCardHTML(v) + (T.divider ? `<div class="motif-row">${T.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + '<footer lang="vi">Một trăm năm liệu có đủ để yêu em?</footer></div>';
+    '<div class="controls">' + langSwitch +
+    `<div class="swatches" role="group" aria-label="${L("Colour theme", "Màu giao diện")}">` +
+    THEMES.map(t => { const nm = lang === "vi" ? THEME_VI[t.id] : t.name; return `<button type="button" class="sw" style="background:linear-gradient(135deg,${t.sw[0]} 50%,${t.sw[1]} 50%)" data-act="theme" data-theme="${t.id}" aria-pressed="${TH.id === t.id}" aria-label="${esc(nm)}" title="${esc(nm)}"></button>`; }).join("") + '</div></div></div>' +
+    `<h1>Beloved Strangers</h1><div class="dates">${L("Fri 4 – Sun 6 December 2026 · Kuala Lumpur", "Thứ Sáu 4 – Chủ Nhật 6 tháng 12, 2026 · Kuala Lumpur")}</div>` +
+    `<div id="cd">${countdownHTML()}</div>` + nextVisitHTML() + (TH.head ? `<button type="button" class="motif-head" data-act="hearts" aria-label="${L("Send some hearts", "Gửi trái tim")}">${TH.head}</button>` : "") + '</header>' +
+    `<nav class="tabs" aria-label="${L("Sections", "Các mục")}"><div class="tabrow">${tabs}</div>${statusHTML()}</nav>` +
+    body + letterCardHTML(v) + (TH.divider ? `<div class="motif-row">${TH.divider.map(x => `<span>${x}</span>`).join("")}</div>` : "") + '<footer lang="vi">Một trăm năm liệu có đủ để yêu em?</footer></div>';
   root.querySelectorAll("textarea").forEach(grow);
   restoreUI(ui);
 }
@@ -805,7 +915,7 @@ function grow(el) { el.style.height = "auto"; el.style.height = el.scrollHeight 
 root.addEventListener("input", e => {
   const t = e.target, b = t.dataset && t.dataset.bind;
   if (t.tagName === "TEXTAREA") grow(t);
-  if (b && state && !writerKey()) { setLocal(b, t.value); queue(pathFor(b), t.value); }
+  if (b && state && !writerKey()) { t.dataset.typed = "1"; setLocal(b, t.value); queue(pathFor(b), t.value); }
 });
 root.addEventListener("change", e => {
   const t = e.target;
@@ -818,6 +928,8 @@ root.addEventListener("click", e => {
   const t = e.target.closest("[data-act]"); if (!t || t.tagName === "INPUT" || !state) return;
   const a = t.dataset.act, id = t.dataset.id, d = t.dataset.day ? day(t.dataset.day) : null;
   if (a === "hearts") { heartBurst(t); return; }
+  if (a === "lang") { if (t.dataset.lang !== lang) setLang(t.dataset.lang); return; }
+  if (a === "letterorig") { letterOriginal = !letterOriginal; render(); return; }
   if (a === "filter") { filter = t.dataset.cat; render(); return; }
   if (a === "menu") { openMenu = openMenu === id ? null : id; render(); return; }
   if (a === "theme") { state.theme = t.dataset.theme; render(); writeNow(["theme"], state.theme); return; }
@@ -888,7 +1000,7 @@ function applyPending(s) {
     if (bind) { const prev = state; state = s; setLocal(bind, value); state = prev; }
   });
   const a = document.activeElement;
-  if (a && a.dataset && a.dataset.bind) { const prev = state; state = s; setLocal(a.dataset.bind, a.value); state = prev; }
+  if (a && a.dataset && a.dataset.bind && a.dataset.typed) { const prev = state; state = s; setLocal(a.dataset.bind, a.value); state = prev; }
   return s;
 }
 onSnapshot(tripRef, { includeMetadataChanges: false }, snap => {
@@ -896,8 +1008,10 @@ onSnapshot(tripRef, { includeMetadataChanges: false }, snap => {
     if (!seeded) { seeded = true; setDoc(tripRef, toDoc(SEED)).catch(onWriteError); }
     return;
   }
-  const next = applyPending(fromDoc(snap.data()));
-  const json = JSON.stringify(next);
+  const data = snap.data(), remoteTr = data.tr || {};
+  Object.keys(remoteTr).forEach(k => { trCache[k] = Object.assign({}, remoteTr[k], trCache[k]); });
+  const next = applyPending(fromDoc(data));
+  const json = JSON.stringify(next) + "|" + JSON.stringify(remoteTr).length;
   if (status === "connecting") status = "saved";
   if (json === lastJSON && state) return;
   lastJSON = json; state = next;
