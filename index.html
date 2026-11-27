@@ -444,6 +444,18 @@ input.scard-artist:focus{outline:none; box-shadow:inset 0 -1px 0 var(--accent)}
 :root[lang="vi"] .qz-note, :root[lang="vi"] .qz-ta{font-size:18px}
 @media (prefers-reduced-motion: reduce){ .qz-card.nope, .qz-card.just .qz-note{animation:none} }
 
+/* photos inside Remember? notes */
+.qz-photos{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px 14px; margin:18px 4px 6px}
+.qz-photos .qz-pola:only-child{grid-column:1 / -1; width:72%; justify-self:center}
+.qz-pola{padding:7px 7px 18px !important}
+.qz-pola img{width:100%; height:auto; min-height:80px}
+.qz-card.just .qz-photos{animation:qzOpen .9s .15s both cubic-bezier(.2,.9,.3,1)}
+.qz-thumbs{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.qz-thumb{position:relative; width:64px; height:64px; background:var(--line)}
+.qz-thumb img{width:100%; height:100%; object-fit:cover; display:block; opacity:1}
+.qz-thumb button{position:absolute; top:-7px; right:-7px; width:22px; height:22px; border-radius:50%; border:none; background:var(--ink); color:#fff; font-size:14px; line-height:22px; padding:0}
+.qz-addimg{display:inline-flex; align-items:center; height:64px; padding:0 14px; border:1.5px dashed var(--line); color:var(--accent-ink); font-size:14px; font-weight:600; cursor:pointer}
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -452,7 +464,7 @@ input.scard-artist:focus{outline:none; box-shadow:inset 0 -1px 0 var(--accent)}
 <script type="application/json" id="seed">{"theme": "peach", "days": [{"id": "fri", "short": "Fri 4", "long": "Friday, 4 December", "title": "Pickup, kopi and gifts", "note": "", "items": [{"id": "f1", "time": "1:20 pm", "title": "Pick up Heather", "note": ""}, {"id": "f2", "time": "1:45 pm", "title": "Oriental Kopi", "note": ""}, {"id": "f3", "time": "2:15 pm", "title": "Uniqlo cardigan + gift buying", "note": ""}, {"id": "f4", "time": "Evening", "title": "Dinner (still deciding)", "note": "Ideas in Places → Dinner ideas"}, {"id": "f5", "time": "8–9 pm", "title": "Get home", "note": ""}, {"id": "f6", "time": "9:00 pm", "title": "Shower, unpack, write on the whiteboard, play with Summer", "note": ""}, {"id": "f7", "time": "9 pm +", "title": "Still hungry? The burger guy", "note": "Could do this on Saturday too"}, {"id": "f8", "time": "Late", "title": "Overcooked, exchange gifts, ice cream, a little chat", "note": ""}]}, {"id": "sat", "short": "Sat 5", "long": "Saturday, 5 December", "title": "Tea house, the outdoor spot, Eurodeli", "note": "", "items": [{"id": "s1", "time": "11:00 am", "title": "Leave the house (at the latest)", "note": ""}, {"id": "s2", "time": "11:20 am", "title": "Miss Ellie Tea House for breakfast / lunch", "note": "Taman Melawati"}, {"id": "s3", "time": "Afternoon", "title": "The outdoorsy place", "note": "Fingers crossed for no rain. Backups in Places"}, {"id": "s4", "time": "5–7 pm", "title": "Eurodeli dinner", "note": "Nathan to book the table"}, {"id": "s5", "time": "Evening", "title": "Back to Summer, freshen up, the things Nathan planned", "note": ""}, {"id": "s6", "time": "Late", "title": "Heart to heart", "note": "A long, long chat"}]}, {"id": "sun", "short": "Sun 6", "long": "Sunday, 6 December", "title": "Last morning, then the flight", "note": "", "items": [{"id": "u1", "time": "Morning", "title": "Slow morning + pack", "note": "Still to plan"}, {"id": "u2", "time": "Late morning", "title": "Brunch somewhere nice", "note": "Pick one from Places → Sunday before the flight"}, {"id": "u3", "time": "TBD", "title": "Leave for the airport", "note": "Work back from the 6pm flight"}, {"id": "u4", "time": "6:00 pm", "title": "Flight", "note": ""}]}], "places": [{"id": "p3", "cat": "dinner", "name": "Wherever we finish shopping", "area": "Near Uniqlo", "why": "Lowest effort if gift buying runs late."}, {"id": "p4", "cat": "rain", "name": "Stay longer at Miss Ellie", "area": "Taman Melawati", "why": "Another pot of tea and the scones. It's cosy indoors."}, {"id": "p6", "cat": "rain", "name": "Taman Melawati Lake", "area": "Taman Melawati", "why": "If it clears up: a short stroll with hill views."}, {"id": "p12", "cat": "sweet", "name": "The burger guy", "area": "Friday or Saturday night", "why": "For when we're still hungry after 9."}, {"id": "p13", "cat": "sweet", "name": "Ice cream run", "area": "After Overcooked", "why": ""}, {"id": "p1syluz", "cat": "dinner", "name": "Oriental Kopi on Friday", "area": "IOI City Mall", "why": ""}, {"id": "p8l8kju", "cat": "dinner", "name": "Euro Deli", "area": "Somewhere Downtown, MAKE RESERVATIONS", "why": ""}], "checks": [{"id": "c1", "text": "Book Eurodeli for Saturday, 5–7 pm", "done": false}, {"id": "c2", "text": "Gifts bought and wrapped", "done": false}, {"id": "c3", "text": "Whiteboard markers", "done": true}, {"id": "c4", "text": "Overcooked set up and ready", "done": false}, {"id": "c5", "text": "Check Saturday's weather", "done": false}, {"id": "c6", "text": "Confirm flight time and terminal", "done": false}], "notes": ""}</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { initializeFirestore, persistentLocalCache, getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, deleteField, FieldPath } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, deleteField, FieldPath, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const FIREBASE_CONFIG = {"apiKey":"AIzaSyDc5E-9sMDb23tgT7SDUWAptyNTn8zKfZc","authDomain":"beloved-strangers.firebaseapp.com","projectId":"beloved-strangers","storageBucket":"beloved-strangers.firebasestorage.app","messagingSenderId":"690093397537","appId":"1:690093397537:web:7ae6ed74090d94d8c5b560"};
 const SEED = JSON.parse(document.getElementById("seed").textContent);
@@ -1124,8 +1136,41 @@ async function qzSeal(date, text) {
   return { salt, iv: toB64(iv), ct: toB64(ct) };
 }
 async function qzOpenNote(date, q) {
-  try { return qzDec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64bytes(q.iv) }, await qzKey(date, q.salt), b64bytes(q.ct))); }
+  let raw;
+  try { raw = qzDec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64bytes(q.iv) }, await qzKey(date, q.salt), b64bytes(q.ct))); }
   catch (e) { return null; }
+  try { const o = JSON.parse(raw); if (o && typeof o.t === "string") return { text: o.t, k: o.k || null }; } catch (e) {}
+  return { text: raw, k: null };   // notes saved before photos were possible
+}
+/* photos inside notes: each is encrypted with the note's own photo key, which is sealed inside the note */
+const qzImgUrl = {}, qzImgBusy = {};
+async function qzAes(kB64) { return crypto.subtle.importKey("raw", b64bytes(kB64), "AES-GCM", false, ["encrypt", "decrypt"]); }
+function hydrateQz() {
+  root.querySelectorAll("img[data-qzimg]").forEach(img => {
+    const id = img.dataset.qzimg, k = img.dataset.k;
+    if (qzImgUrl[id]) { if (img.getAttribute("src") !== qzImgUrl[id]) img.src = qzImgUrl[id]; img.classList.add("ready"); return; }
+    if (!k || qzImgBusy[id]) return;
+    qzImgBusy[id] = getDoc(doc(db, "qzimg", id)).then(async sn => {
+      if (!sn.exists()) return;
+      const v = sn.data();
+      const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64bytes(v.iv) }, await qzAes(k), b64bytes(v.ct));
+      qzImgUrl[id] = URL.createObjectURL(new Blob([plain], { type: v.mime || "image/jpeg" }));
+      root.querySelectorAll(`img[data-qzimg="${id}"]`).forEach(x => { x.src = qzImgUrl[id]; x.classList.add("ready"); });
+    }).catch(() => { delete qzImgBusy[id]; });
+  });
+}
+async function qzShrink(file) {
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: "from-image" }); } catch (e) { bmp = await createImageBitmap(file); }
+  const sc = Math.min(1, 1280 / Math.max(bmp.width, bmp.height)), w = Math.round(bmp.width * sc), h = Math.round(bmp.height * sc);
+  const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(bmp, 0, 0, w, h);
+  let blob = null;
+  for (const q of [0.82, 0.72, 0.6, 0.5]) { blob = await new Promise(r => c.toBlob(r, "image/jpeg", q)); if (blob && blob.size < 650000) break; }
+  return { blob, w, h, mime: "image/jpeg", url: URL.createObjectURL(blob) };
+}
+function qzPhotosHTML(ids, k) {
+  if (!ids || !ids.length) return "";
+  return `<div class="qz-photos">` + ids.map((id, i) => `<figure class="pola qz-pola" style="--r:${[-3, 2.5, -1.5, 3][i % 4]}deg"><span class="tape" aria-hidden="true"></span><img class="ph" data-qzimg="${id}" data-k="${esc(k || "")}" alt="${L("A photo from this memory", "Một tấm ảnh của kỷ niệm này")}"></figure>`).join("") + `</div>`;
 }
 const quizList = () => Object.entries((state && state.quiz) || {}).map(([id, v]) => Object.assign({ id }, v)).filter(q => q && q.ct).sort((a, b) => (a.order || 0) - (b.order || 0));
 const canSeeDates = () => !!editorKey() || quizList().length > 0;
@@ -1142,11 +1187,13 @@ function qzPlayCard(q, i) {
   const solved = qzPreview ? (qzText[q.id] != null ? "preview" : null) : q.solved;
   if (solved) {
     if (qzText[q.id] == null && !qzBusy[q.id]) {
-      qzBusy[q.id] = qzOpenNote(q.solved, q).then(t => { qzText[q.id] = t == null ? "" : t; delete qzBusy[q.id]; render(); });
+      qzBusy[q.id] = qzOpenNote(q.solved, q).then(t => { qzText[q.id] = t || { text: "", k: null }; delete qzBusy[q.id]; render(); });
     }
-    const note = qzText[q.id] == null ? `<span class="hint">${L("Opening…", "Đang mở…")}</span>` : esc(T(qzText[q.id]));
+    const op = qzText[q.id];
+    const note = op == null ? `<span class="hint">${L("Opening…", "Đang mở…")}</span>` : esc(T(op.text));
+    const pics = op && op.k ? qzPhotosHTML(q.imgs, op.k) : "";
     const when = solved === "preview" ? L("Preview ♡", "Xem thử ♡") : L(`You remembered ♡ · ${qzDate(q.solved)}`, `Em nhớ đúng ♡ · ${qzDate(q.solved)}`);
-    return `<article class="qz-card solved${qzJust === q.id ? " just" : ""}">${head}<div class="qz-note">${note}</div><p class="qz-when">${when}</p></article>`;
+    return `<article class="qz-card solved${qzJust === q.id ? " just" : ""}">${head}<div class="qz-note">${note}</div>${pics}<p class="qz-when">${when}</p></article>`;
   }
   const wrong = qzWrong[q.id] || 0;
   return `<article class="qz-card${qzJust === "x" + q.id ? " nope" : ""}">${head}` +
@@ -1165,10 +1212,19 @@ function qzEditCard(id, i) {
     `<label class="qz-lab">Which date did we…</label><input type="text" id="qz-${id}-q" data-qz="q" value="${esc(v("q"))}" placeholder="first meet">` +
     `<label class="qz-lab">The answer</label><input type="date" id="qz-${id}-a" data-qz="a" value="${esc(v("a"))}">` +
     `<label class="qz-lab">The note she unlocks</label><textarea class="qz-ta" id="qz-${id}-note" data-qz="note" rows="4" placeholder="Write the note here…">${esc(v("note"))}</textarea>` +
+    `<label class="qz-lab">Photos <small>(revealed with the note)</small></label>` + qzEditPhotos(id, pub, pv, d) +
     `<label class="qz-lab">Hint <small>(optional, shows after 2 wrong tries)</small></label><input type="text" id="qz-${id}-hint" data-qz="hint" value="${esc(v("hint"))}" placeholder="e.g. it was raining">` +
     `<div class="qz-row"><span class="qz-status">${esc(qzMsg[id] || status)}</span>` +
     `<button type="button" class="linkbtn danger" data-act="qzdel" data-id="${id}">${qzConfirm === id ? "Tap again to remove" : "Remove"}</button>` +
     `<button type="button" class="cta" data-act="qzsave" data-id="${id}"${qzBusy[id] ? " disabled" : ""}>${qzBusy[id] ? "Saving…" : "Save"}</button></div></article>`;
+}
+function qzImgList(id, pub, d) { return d.imgs || (pub.imgs || []).map(x => ({ id: x })); }
+function qzEditPhotos(id, pub, pv, d) {
+  const list = qzImgList(id, pub, d);
+  const thumbs = list.map((im, i) => `<span class="qz-thumb">` +
+    (im.url ? `<img src="${im.url}" alt="">` : `<img class="ph" data-qzimg="${im.id}" data-k="${esc(pv.k || "")}" alt="">`) +
+    `<button type="button" data-act="qzimgdel" data-id="${id}" data-i="${i}" aria-label="Remove photo">×</button></span>`).join("");
+  return `<div class="qz-thumbs">${thumbs}<label class="qz-addimg">+ ${list.length ? "More" : "Add photos"}<input type="file" accept="image/*" multiple data-qzfile="${id}" hidden></label></div>`;
 }
 function datesView() {
   const ek = editorKey(), editing = ek && !qzPreview;
@@ -1194,21 +1250,40 @@ async function qzSave(id) {
   if (!q || !a || !note) { qzMsg[id] = "Fill in the question, the date and the note first."; render(); return; }
   qzBusy[id] = true; delete qzMsg[id]; render();
   try {
-    const sealed = await qzSeal(a, note);
+    const list = qzImgList(id, pub, d);
+    const k = pv.k || toB64(crypto.getRandomValues(new Uint8Array(32)));
+    const fresh = list.filter(im => im.blob), keep = list.map(im => im.id);
+    const gone = (pub.imgs || []).filter(x => !keep.includes(x));
+    if (fresh.length || gone.length) {
+      const key = await qzAes(k), batch = writeBatch(db);
+      for (const im of fresh) {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, await im.blob.arrayBuffer()));
+        batch.set(doc(db, "qzimg", im.id), { iv: toB64(iv), ct: toB64(ct), mime: im.mime, w: im.w, h: im.h });
+        batch.set(doc(db, "drafts", ek, "qzimg", im.id), { q: id });
+        qzImgUrl[im.id] = im.url;
+      }
+      gone.forEach(x => { batch.delete(doc(db, "qzimg", x)); batch.delete(doc(db, "drafts", ek, "qzimg", x)); });
+      await batch.commit();
+    }
+    const sealed = await qzSeal(a, JSON.stringify({ t: note, k }));
     const order = pub.order || (Math.max(0, ...quizList().map(x => x.order || 0)) + 1);
-    await setDoc(doc(db, "drafts", ek), { quiz: { [id]: { a, note } } }, { merge: true });
+    await setDoc(doc(db, "drafts", ek), { quiz: { [id]: { a, note, k } } }, { merge: true });
     const args = [new FieldPath("quiz", id, "q"), q, new FieldPath("quiz", id, "hint"), hint, new FieldPath("quiz", id, "order"), order,
+      new FieldPath("quiz", id, "imgs"), keep,
       new FieldPath("quiz", id, "salt"), sealed.salt, new FieldPath("quiz", id, "iv"), sealed.iv, new FieldPath("quiz", id, "ct"), sealed.ct];
     if (pub.solved && pv.a && pv.a !== a) args.push(new FieldPath("quiz", id, "solved"), deleteField(), new FieldPath("quiz", id, "tries"), deleteField());
     await updateDoc(tripRef, ...args);
-    qzPriv = Object.assign({}, qzPriv, { [id]: { a, note } }); delete qzDraft[id]; delete qzText[id]; qzMsg[id] = "Saved ♡";
-  } catch (e) { qzMsg[id] = "Couldn't save. Check your connection and try again."; }
+    qzPriv = Object.assign({}, qzPriv, { [id]: { a, note, k } }); delete qzDraft[id]; delete qzText[id]; qzMsg[id] = "Saved ♡";
+  } catch (e) { qzMsg[id] = e && e.code === "permission-denied" ? "Photos need a one-time Firebase setting first (see Claude chat)." : "Couldn't save. Check your connection and try again."; }
   delete qzBusy[id]; render();
 }
 async function qzRemove(id) {
   const ek = editorKey(); if (!ek) return;
   delete qzDraft[id]; qzConfirm = null;
   try {
+    const imgs = ((state.quiz || {})[id] || {}).imgs || [];
+    if (imgs.length) { const batch = writeBatch(db); imgs.forEach(x => { batch.delete(doc(db, "qzimg", x)); batch.delete(doc(db, "drafts", ek, "qzimg", x)); }); await batch.commit().catch(() => {}); }
     if ((state.quiz || {})[id]) await updateDoc(tripRef, new FieldPath("quiz", id), deleteField());
     await setDoc(doc(db, "drafts", ek), { quiz: { [id]: deleteField() } }, { merge: true });
     if (qzPriv) delete qzPriv[id];
@@ -1317,6 +1392,7 @@ function render() {
   root.querySelectorAll("textarea").forEach(grow);
   restoreUI(ui);
   hydratePhotos();
+  hydrateQz();
 }
 function grow(el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
 
@@ -1341,6 +1417,7 @@ root.addEventListener("click", e => {
   if (a === "shuffle") { shuffleFront(); return; }
   if (a === "qzadd") { const id = "q" + Date.now().toString(36); qzDraft[id] = { isNew: true }; render(); const el = root.querySelector(`[data-qzid="${id}"] input`); if (el) el.focus(); return; }
   if (a === "qzsave") { qzSave(id); return; }
+  if (a === "qzimgdel") { const pub = (state.quiz || {})[id] || {}, dd = qzDraft[id] || {}; const list = qzImgList(id, pub, dd).slice(); list.splice(+t.dataset.i, 1); qzDraft[id] = Object.assign({}, dd, { imgs: list, dirty: true }); render(); return; }
   if (a === "qzdel") { if (qzConfirm === id) qzRemove(id); else { qzConfirm = id; render(); } return; }
   if (a === "qzpreview") { qzPreview = !qzPreview; qzText = {}; qzWrong = {}; render(); return; }
   if (a === "quote") { nextQuote(); t.outerHTML = quoteHTML(true); return; }
@@ -1378,6 +1455,14 @@ root.addEventListener("click", e => {
     writeNow(["days", to.id, "items", nid], item);
     location.hash = to.id;
   }
+});
+root.addEventListener("change", async e => {
+  const t = e.target; if (!t.dataset || !t.dataset.qzfile || !t.files || !t.files.length) return;
+  const id = t.dataset.qzfile, pub = (state.quiz || {})[id] || {}, dd = qzDraft[id] || {};
+  const files = [...t.files]; qzMsg[id] = `Preparing ${files.length} photo${files.length > 1 ? "s" : ""}…`; render();
+  const list = qzImgList(id, pub, qzDraft[id] || dd).slice();
+  for (const f of files) { try { const im = await qzShrink(f); list.push(Object.assign({ id: "i" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) }, im)); } catch (err) {} }
+  qzDraft[id] = Object.assign({}, qzDraft[id] || dd, { imgs: list, dirty: true }); qzMsg[id] = "Photos added. Tap Save to keep them."; render();
 });
 root.addEventListener("submit", e => {
   e.preventDefault(); if (!state) return;
