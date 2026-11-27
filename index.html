@@ -415,6 +415,35 @@ input.scard-artist:focus{outline:none; box-shadow:inset 0 -1px 0 var(--accent)}
 .sb-s figure.print .tag{left:-8%; right:-8%}
 .sb-s figure.print .tag .ph-cap{font-size:15px}
 
+/* "Remember?" date game */
+.qz-list{display:flex; flex-direction:column; gap:16px; margin:6px 0 14px}
+.qz-card{position:relative; background:var(--card); border:1px solid var(--line); padding:16px 16px 14px 56px; box-shadow:0 10px 22px -18px rgba(40,25,20,.5)}
+.qz-num{position:absolute; left:14px; top:12px; font-family:var(--hand); font-size:26px; color:var(--accent); line-height:1}
+.qz-q{margin:0 0 12px; font-family:"Fraunces", Georgia, serif; font-size:18px; line-height:1.35; color:var(--ink)}
+.qz-form{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.qz-form input[type=date]{flex:1; min-width:150px; font:inherit; font-size:15px; color:var(--ink); background:var(--paper, transparent); border:1px solid var(--line); padding:8px 10px; border-radius:0}
+.qz-msg{margin:10px 0 0; font-family:var(--hand); font-size:18px; color:var(--accent-ink)}
+.qz-hint{margin:4px 0 0; font-size:14px; color:var(--muted)}
+.qz-card.nope{animation:qzShake .45s ease}
+@keyframes qzShake{20%{transform:translateX(-7px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(2px)}}
+.qz-card.solved{background:var(--accent-soft); border-color:color-mix(in srgb, var(--accent) 45%, transparent)}
+.qz-note{white-space:pre-wrap; font-family:var(--hand); font-size:21px; line-height:1.4; color:var(--ink); padding:12px 14px; background:var(--card);
+  background-image:repeating-linear-gradient(transparent 0 28px, color-mix(in srgb, var(--line) 80%, transparent) 28px 29px); border-left:3px solid var(--accent)}
+.qz-card.just .qz-note{animation:qzOpen .7s cubic-bezier(.2,.9,.3,1)}
+@keyframes qzOpen{from{opacity:0; transform:translateY(8px) scaleY(.92); transform-origin:top} to{opacity:1; transform:none}}
+.qz-when{margin:8px 0 0; font-family:var(--hand); font-size:17px; color:var(--accent-ink)}
+.qz-edit{display:flex; flex-direction:column; gap:4px}
+.qz-lab{font-size:12.5px; font-weight:600; color:var(--muted); margin-top:8px; letter-spacing:.02em}
+.qz-lab small{font-weight:400}
+.qz-edit input, .qz-ta{font:inherit; font-size:15px; color:var(--ink); background:transparent; border:1px solid var(--line); padding:8px 10px; border-radius:0; width:100%}
+.qz-ta{font-family:var(--hand); font-size:19px; line-height:1.35; resize:vertical; min-height:96px}
+.qz-row{display:flex; align-items:center; gap:12px; margin-top:12px}
+.qz-status{flex:1; font-size:13px; color:var(--muted)}
+.linkbtn.danger{color:#B4432F}
+:root[lang="vi"] .qz-q{font-family:"Be Vietnam Pro", system-ui, sans-serif; font-size:17px}
+:root[lang="vi"] .qz-note, :root[lang="vi"] .qz-ta{font-size:18px}
+@media (prefers-reduced-motion: reduce){ .qz-card.nope, .qz-card.just .qz-note{animation:none} }
+
 .status:not(nav .status){margin-top:8px}
 </style>
 </head>
@@ -642,7 +671,8 @@ function fromDoc(d) {
     checks: sortMap(d.checks),
     songs: sortMap(d.songs),
     playlist: d.playlist || null,
-    photos: d.photos || {}
+    photos: d.photos || {},
+    quiz: d.quiz || {}
   };
 }
 
@@ -710,7 +740,7 @@ function statusHTML() {
 }
 
 /* ---------- routing ---------- */
-const VIEWS = ["fri", "sat", "sun", "places", "notes", "letter", "songs", "two"];
+const VIEWS = ["fri", "sat", "sun", "places", "notes", "dates", "letter", "songs", "two"];
 function defaultView() {
   if (letterOpen()) return "letter";
   const d = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
@@ -719,7 +749,7 @@ function defaultView() {
 }
 function currentView() {
   const h = location.hash.replace("#", "");
-  return (VIEWS.includes(h) && (h !== "letter" || letterOpen()) && (h !== "songs" || canSeeSongs()) && (h !== "two" || canSeeTwo())) ? h : defaultView();
+  return (VIEWS.includes(h) && (h !== "letter" || letterOpen()) && (h !== "songs" || canSeeSongs()) && (h !== "dates" || canSeeDates()) && (h !== "two" || canSeeTwo())) ? h : defaultView();
 }
 const writerKey = () => { const m = location.hash.match(/^#write-([A-Za-z0-9]{12,})$/); return m ? m[1] : null; };
 
@@ -1080,6 +1110,129 @@ function quoteHTML(swap) {
     `<span class="q-hint">${L("tap for another ♡", "chạm để xem câu khác ♡")}</span></button>`;
 }
 
+/* ---------- "Remember?": guess the date, and the right date unlocks a note.
+   Each note is encrypted with a key made from its answer date, so the note can't be read without the right date. ---------- */
+const QZ_ITER = 150000, qzEnc = new TextEncoder(), qzDec = new TextDecoder();
+const toB64 = u => { let s = ""; for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); };
+async function qzKey(date, saltB64) {
+  const base = await crypto.subtle.importKey("raw", qzEnc.encode("bs-quiz|" + date), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64bytes(saltB64), iterations: QZ_ITER, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+async function qzSeal(date, text) {
+  const salt = toB64(crypto.getRandomValues(new Uint8Array(16))), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await qzKey(date, salt), qzEnc.encode(text)));
+  return { salt, iv: toB64(iv), ct: toB64(ct) };
+}
+async function qzOpenNote(date, q) {
+  try { return qzDec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64bytes(q.iv) }, await qzKey(date, q.salt), b64bytes(q.ct))); }
+  catch (e) { return null; }
+}
+const quizList = () => Object.entries((state && state.quiz) || {}).map(([id, v]) => Object.assign({ id }, v)).filter(q => q && q.ct).sort((a, b) => (a.order || 0) - (b.order || 0));
+const canSeeDates = () => !!editorKey() || quizList().length > 0;
+let qzText = {}, qzWrong = {}, qzBusy = {}, qzJust = null, qzPriv = null, qzDraft = {}, qzMsg = {}, qzPreview = false, qzConfirm = null;
+function qzDate(d) {
+  const [y, m, dd] = d.split("-").map(Number);
+  const M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  return lang === "vi" ? `${dd} tháng ${m}, ${y}` : `${dd} ${M[m - 1]} ${y}`;
+}
+const qzQuestion = q => "Which date did we " + String(q || "").trim().replace(/[?.!\s]+$/, "") + "?";
+function qzPlayCard(q, i) {
+  const num = `<span class="qz-num">${String(i + 1).padStart(2, "0")}</span>`;
+  const head = `${num}<p class="qz-q">${esc(T(qzQuestion(q.q)))}</p>`;
+  const solved = qzPreview ? (qzText[q.id] != null ? "preview" : null) : q.solved;
+  if (solved) {
+    if (qzText[q.id] == null && !qzBusy[q.id]) {
+      qzBusy[q.id] = qzOpenNote(q.solved, q).then(t => { qzText[q.id] = t == null ? "" : t; delete qzBusy[q.id]; render(); });
+    }
+    const note = qzText[q.id] == null ? `<span class="hint">${L("Opening…", "Đang mở…")}</span>` : esc(T(qzText[q.id]));
+    const when = solved === "preview" ? L("Preview ♡", "Xem thử ♡") : L(`You remembered ♡ · ${qzDate(q.solved)}`, `Em nhớ đúng ♡ · ${qzDate(q.solved)}`);
+    return `<article class="qz-card solved${qzJust === q.id ? " just" : ""}">${head}<div class="qz-note">${note}</div><p class="qz-when">${when}</p></article>`;
+  }
+  const wrong = qzWrong[q.id] || 0;
+  return `<article class="qz-card${qzJust === "x" + q.id ? " nope" : ""}">${head}` +
+    `<form class="qz-form" data-form="qz" data-id="${q.id}"><input type="date" name="d" id="qzd-${q.id}" required aria-label="${L("Pick the date", "Chọn ngày")}">` +
+    `<button class="cta" type="submit"${qzBusy[q.id] ? " disabled" : ""}>${qzBusy[q.id] ? L("Checking…", "Đang kiểm tra…") : L("Unlock", "Mở khoá")}</button></form>` +
+    (wrong ? `<p class="qz-msg">${L("Not quite… try again ♡", "Chưa đúng… thử lại nhé ♡")}</p>` : "") +
+    (wrong >= 2 && q.hint ? `<p class="qz-hint">${L("Hint: ", "Gợi ý: ")}${esc(T(q.hint))}</p>` : "") + `</article>`;
+}
+function qzEditCard(id, i) {
+  const pub = (state.quiz || {})[id] || {}, pv = (qzPriv || {})[id] || {}, d = qzDraft[id] || {};
+  const v = k => d[k] != null ? d[k] : (k === "a" || k === "note" ? (pv[k] || "") : (pub[k] || ""));
+  const saved = !!pub.ct;
+  const status = pub.solved ? `Heather got it ♡ (${qzDate(pub.solved)}${pub.tries ? `, ${pub.tries === 1 ? "first try" : pub.tries + " tries"}` : ""})`
+    : saved ? (d.dirty ? "Unsaved changes" : "Saved · locked until she gets it") : "Not saved yet";
+  return `<article class="qz-card qz-edit" data-qzid="${id}"><span class="qz-num">${String(i + 1).padStart(2, "0")}</span>` +
+    `<label class="qz-lab">Which date did we…</label><input type="text" id="qz-${id}-q" data-qz="q" value="${esc(v("q"))}" placeholder="first meet">` +
+    `<label class="qz-lab">The answer</label><input type="date" id="qz-${id}-a" data-qz="a" value="${esc(v("a"))}">` +
+    `<label class="qz-lab">The note she unlocks</label><textarea class="qz-ta" id="qz-${id}-note" data-qz="note" rows="4" placeholder="Write the note here…">${esc(v("note"))}</textarea>` +
+    `<label class="qz-lab">Hint <small>(optional, shows after 2 wrong tries)</small></label><input type="text" id="qz-${id}-hint" data-qz="hint" value="${esc(v("hint"))}" placeholder="e.g. it was raining">` +
+    `<div class="qz-row"><span class="qz-status">${esc(qzMsg[id] || status)}</span>` +
+    `<button type="button" class="linkbtn danger" data-act="qzdel" data-id="${id}">${qzConfirm === id ? "Tap again to remove" : "Remove"}</button>` +
+    `<button type="button" class="cta" data-act="qzsave" data-id="${id}"${qzBusy[id] ? " disabled" : ""}>${qzBusy[id] ? "Saving…" : "Save"}</button></div></article>`;
+}
+function datesView() {
+  const ek = editorKey(), editing = ek && !qzPreview;
+  if (ek && qzPriv === null) { qzPriv = {}; getDoc(doc(db, "drafts", ek)).then(sn => { qzPriv = (sn.exists() && sn.data().quiz) || {}; render(); }).catch(() => {}); }
+  const head = `<section class="view"><div class="dayhead"><span class="eyebrow">${L("A little game", "Một trò chơi nhỏ")}</span><h2>${L("Do you remember?", "Em còn nhớ không?")}</h2></div>`;
+  const toggle = ek ? `<p class="fine"><button type="button" class="linkbtn" data-act="qzpreview">${qzPreview ? "Back to editing" : "See it as Heather"}</button>${qzPreview ? " · <em>preview only, nothing is saved</em>" : ""}</p>` : "";
+  if (editing) {
+    const ids = quizList().map(q => q.id).concat(Object.keys(qzDraft).filter(id => qzDraft[id].isNew && !(state.quiz || {})[id]));
+    return head + `<p class="hint">Only you see this editor. Write each question, its date and the note it unlocks, then Save. Heather sees the questions once the first one is saved.</p>` + toggle +
+      `<div class="qz-list">${ids.map(qzEditCard).join("")}</div><button type="button" class="add" data-act="qzadd">+ Add a question</button></section>`;
+  }
+  const qs = quizList();
+  const done = qs.filter(q => q.solved).length;
+  return head + `<p class="hint">${L("Pick the date. Get it right and a note from me opens.", "Chọn đúng ngày, một lời nhắn của anh sẽ mở ra.")}</p>` + toggle +
+    (qs.length ? `<p class="progress">${L(`${done} of ${qs.length} remembered`, `Đã nhớ ${done}/${qs.length}`)}</p><div class="qz-list">${qs.map(qzPlayCard).join("")}</div>`
+      : `<p class="empty">${L("Nothing here yet ♡", "Chưa có gì ở đây ♡")}</p>`) + `</section>`;
+}
+async function qzSave(id) {
+  const ek = editorKey(); if (!ek) return;
+  const pub = (state.quiz || {})[id] || {}, pv = (qzPriv || {})[id] || {}, d = qzDraft[id] || {};
+  const val = k => (d[k] != null ? d[k] : (k === "a" || k === "note" ? (pv[k] || "") : (pub[k] || ""))).trim();
+  const q = val("q"), a = val("a"), note = val("note"), hint = val("hint");
+  if (!q || !a || !note) { qzMsg[id] = "Fill in the question, the date and the note first."; render(); return; }
+  qzBusy[id] = true; delete qzMsg[id]; render();
+  try {
+    const sealed = await qzSeal(a, note);
+    const order = pub.order || (Math.max(0, ...quizList().map(x => x.order || 0)) + 1);
+    await setDoc(doc(db, "drafts", ek), { quiz: { [id]: { a, note } } }, { merge: true });
+    const args = [new FieldPath("quiz", id, "q"), q, new FieldPath("quiz", id, "hint"), hint, new FieldPath("quiz", id, "order"), order,
+      new FieldPath("quiz", id, "salt"), sealed.salt, new FieldPath("quiz", id, "iv"), sealed.iv, new FieldPath("quiz", id, "ct"), sealed.ct];
+    if (pub.solved && pv.a && pv.a !== a) args.push(new FieldPath("quiz", id, "solved"), deleteField(), new FieldPath("quiz", id, "tries"), deleteField());
+    await updateDoc(tripRef, ...args);
+    qzPriv = Object.assign({}, qzPriv, { [id]: { a, note } }); delete qzDraft[id]; delete qzText[id]; qzMsg[id] = "Saved ♡";
+  } catch (e) { qzMsg[id] = "Couldn't save. Check your connection and try again."; }
+  delete qzBusy[id]; render();
+}
+async function qzRemove(id) {
+  const ek = editorKey(); if (!ek) return;
+  delete qzDraft[id]; qzConfirm = null;
+  try {
+    if ((state.quiz || {})[id]) await updateDoc(tripRef, new FieldPath("quiz", id), deleteField());
+    await setDoc(doc(db, "drafts", ek), { quiz: { [id]: deleteField() } }, { merge: true });
+    if (qzPriv) delete qzPriv[id];
+  } catch (e) {}
+  render();
+}
+async function qzTry(id, date) {
+  const q = quizList().find(x => x.id === id); if (!q || !date || qzBusy[id]) return;
+  qzBusy[id] = true; render();
+  const text = await qzOpenNote(date, q);
+  delete qzBusy[id];
+  if (text != null) {
+    qzText[id] = text; qzJust = id;
+    if (!qzPreview) {
+      const tries = (qzWrong[id] || 0) + 1;
+      state.quiz[id] = Object.assign({}, state.quiz[id], { solved: date, tries });
+      updateDoc(tripRef, new FieldPath("quiz", id, "solved"), date, new FieldPath("quiz", id, "tries"), tries).catch(() => {});
+    } else state.quiz[id] = Object.assign({}, state.quiz[id]);
+    heartBurst(root.querySelector(`form[data-id="${id}"] .cta`) || root);
+  } else { qzWrong[id] = (qzWrong[id] || 0) + 1; qzJust = "x" + id; }
+  render();
+  setTimeout(() => { qzJust = null; }, 900);
+}
+
 function loadLetter() {
   getDoc(doc(db, "letter", "goodbye")).then(s => {
     const d = s.exists() ? s.data() : {};
@@ -1141,12 +1294,14 @@ function render() {
   const tabs = state.days.map(d => `<a class="tab" href="#${d.id}"${v === d.id ? ' aria-current="page"' : ""}>${esc(dayShort(d))}</a>`).join("") +
     `<a class="tab" href="#places"${v === "places" ? ' aria-current="page"' : ""}>${L("Places", "Địa điểm")}</a>` +
     `<a class="tab" href="#notes"${v === "notes" ? ' aria-current="page"' : ""}>${L("To-do &amp; notes", "Việc cần làm &amp; ghi chú")}</a>` +
+    (canSeeDates() ? `<a class="tab" href="#dates"${v === "dates" ? ' aria-current="page"' : ""}>${L("Remember?", "Còn nhớ?")}</a>`
+      : `<span class="tab tab-locked" aria-disabled="true" title="${L("Coming soon", "Sắp có")}">${TAB_LOCK}${L("Remember?", "Còn nhớ?")}<small>${L("soon", "sắp có")}</small></span>`) +
     (letterOpen() ? `<a class="tab" href="#letter"${v === "letter" ? ' aria-current="page"' : ""}>${L("A letter ♡", "Lá thư ♡")}</a>` : "") +
     (canSeeSongs() ? `<a class="tab" href="#songs"${v === "songs" ? ' aria-current="page"' : ""}>${songsOpen() ? "" : TAB_LOCK}${L("Songs", "Bài hát")}</a>`
       : `<span class="tab tab-locked" aria-disabled="true" title="${L("Opens on 4 December", "Mở vào ngày 4 tháng 12")}">${TAB_LOCK}${L("Songs", "Bài hát")}<small>${L("4 Dec", "4/12")}</small></span>`) +
     (canSeeTwo() ? `<a class="tab" href="#two"${v === "two" ? ' aria-current="page"' : ""}>${twoOpen() ? "" : TAB_LOCK}${L("Two", "Đôi ta")}</a>`
       : `<span class="tab tab-locked" aria-disabled="true" title="${L("Opens on 5 December", "Mở vào ngày 5 tháng 12")}">${TAB_LOCK}${L("Two", "Đôi ta")}<small>${L("5 Dec", "5/12")}</small></span>`);
-  const body = v === "letter" ? letterView() : v === "two" ? usView() : v === "songs" ? songsView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
+  const body = v === "letter" ? letterView() : v === "two" ? usView() : v === "dates" ? datesView() : v === "songs" ? songsView() : v === "places" ? placesView() : v === "notes" ? notesView() : dayView(day(v));
   const langSwitch = `<div class="lang" role="group" aria-label="Language / Ngôn ngữ">` +
     `<button type="button" data-act="lang" data-lang="en" aria-pressed="${lang === "en"}" lang="en">EN</button>` +
     `<button type="button" data-act="lang" data-lang="vi" aria-pressed="${lang === "vi"}" lang="vi">VI</button></div>`;
@@ -1169,6 +1324,7 @@ function grow(el) { el.style.height = "auto"; el.style.height = el.scrollHeight 
 root.addEventListener("input", e => {
   const t = e.target, b = t.dataset && t.dataset.bind;
   if (t.tagName === "TEXTAREA") grow(t);
+  if (t.dataset && t.dataset.qz) { const card = t.closest("[data-qzid]"); if (card) { const id = card.dataset.qzid; qzDraft[id] = Object.assign({}, qzDraft[id], { [t.dataset.qz]: t.value, dirty: true }); delete qzMsg[id]; } return; }
   if (b && state && !writerKey()) { t.dataset.typed = "1"; setLocal(b, t.value); queue(pathFor(b), t.value); }
 });
 root.addEventListener("change", e => {
@@ -1183,6 +1339,10 @@ root.addEventListener("click", e => {
   const a = t.dataset.act, id = t.dataset.id, d = t.dataset.day ? day(t.dataset.day) : null;
   if (a === "hearts") { heartBurst(t); return; }
   if (a === "shuffle") { shuffleFront(); return; }
+  if (a === "qzadd") { const id = "q" + Date.now().toString(36); qzDraft[id] = { isNew: true }; render(); const el = root.querySelector(`[data-qzid="${id}"] input`); if (el) el.focus(); return; }
+  if (a === "qzsave") { qzSave(id); return; }
+  if (a === "qzdel") { if (qzConfirm === id) qzRemove(id); else { qzConfirm = id; render(); } return; }
+  if (a === "qzpreview") { qzPreview = !qzPreview; qzText = {}; qzWrong = {}; render(); return; }
   if (a === "quote") { nextQuote(); t.outerHTML = quoteHTML(true); return; }
   if (a === "songmenu") { openSong = openSong === id ? null : id; render(); return; }
   if (a === "lang") { if (t.dataset.lang !== lang) setLang(t.dataset.lang); return; }
@@ -1222,6 +1382,7 @@ root.addEventListener("click", e => {
 root.addEventListener("submit", e => {
   e.preventDefault(); if (!state) return;
   const f = e.target, kind = f.dataset.form;
+  if (kind === "qz") { qzTry(f.dataset.id, f.elements.d.value); return; }
   if (kind === "place") {
     const n = f.elements.name.value.trim(); if (!n) return;
     const id = uid("p"), p = { cat: f.elements.cat.value, name: n, area: f.elements.area.value.trim(), why: "", order: nextOrder(state.places) };
@@ -1239,7 +1400,7 @@ root.addEventListener("submit", e => {
   render();
 });
 function claimEditorLink() {
-  const m = /^#me-(two|songs)-([A-Za-z0-9]+)$/.exec(location.hash);
+  const m = /^#me-(two|songs|dates)-([A-Za-z0-9]+)$/.exec(location.hash);
   if (!m) return false;
   const view = m[1], key = m[2];
   history.replaceState(null, "", location.pathname + location.search + "#" + view);   // keep the key out of the address bar
